@@ -2,196 +2,372 @@
 
 @{
     ViewData["Title"] = "Trang tin tức Đà Nẵng";
+
+    // 1. Spotlight (Tin to nhất)
+    var spotlight = Model
+        .Where(x => x.IsFeatured && x.Status == 2)
+        .OrderByDescending(x => x.CreatedAt)
+        .FirstOrDefault();
+
+    // 2. Slider Tin Nổi Bật 
+    var featuredSlides = Model
+        .Where(x => x.IsFeatured && x.Status == 2 && (spotlight == null || x.Id != spotlight.Id))
+        .Take(10);
+
+    // 3. Trending & New Feed
+    var trending = Model.Where(x => x.Status == 2).OrderByDescending(x => x.CreatedAt).Take(5);
+    var initialNewFeed = Model.Where(x => x.Status == 2).OrderByDescending(x => x.CreatedAt).Take(10);
+    
+    // Tiêu điểm năm 2026 (Theo yêu cầu của bạn)
+    var spotlightYear = Model.Where(x => x.IsFeatured && x.CreatedAt.Year == 2026).Take(5);
 }
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
 
-<div class="main-wrapper">
-
-    <div class="featured-section">
-        <h2 class="featured-title text-center">TIN NỔI BẬT</h2>
-
-        <div class="swiper mySwiper">
-            <div class="swiper-wrapper">
-                @foreach (var item in Model.Where(a => a.IsFeatured == true && a.Status == 1).OrderByDescending(a => a.CreatedAt))
-                {
-                    <div class="swiper-slide">
-                        <a asp-controller="Article" asp-action="Details" asp-route-id="@item.Id">
-                            <div class="featured-card">
-                                <img src="@item.ImageUrl" alt="@item.Title">
-                                <div class="overlay">
-                                    <h3>@item.Title</h3>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                }
-            </div>
-
-            <div class="swiper-button-next"></div>
-            <div class="swiper-button-prev"></div>
-            <div class="swiper-pagination"></div>
-        </div>
-    </div>
-
-    <div class="content-wrapper">
-
-        <div class="category-block mb-5">
-            @{ ViewData["SectionTitle"] = "CẢNH BÁO TỘI PHẠM"; }
-            @await Html.PartialAsync("_ArticleSection", Model.Where(a => a.CategoryId == 1 && a.Status == 1))
-        </div>
-
-        <div class="category-block mb-5">
-            @{ ViewData["SectionTitle"] = "TÌM KIẾM NGƯỜI THÂN"; }
-            @await Html.PartialAsync("_ArticleSection", Model.Where(a => a.CategoryId == 2 && a.Status == 1))
-        </div>
-
-        <div class="category-block mb-5">
-            @{ ViewData["SectionTitle"] = "TIN TỨC XÃ HỘI"; }
-            @await Html.PartialAsync("_ArticleSection", Model.Where(a => a.CategoryId == 3 && a.Status == 1))
-        </div>
-
-    </div>
-
-</div>
-
-<a asp-controller="Article" asp-action="Create" class="fab-post">
-    <i class="bi bi-pencil-square me-2"></i> ĐĂNG TIN
+<a asp-controller="Article" asp-action="Create" class="btn-floating-publish">
+    <i class="bi bi-pencil-square"></i>
+    <span>+ ĐĂNG TIN</span>
 </a>
 
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<div class="container-main">
 
-<script>
-    var swiper = new Swiper(".mySwiper", {
-        loop: true,                 // Vòng lặp vô hạn
-        centeredSlides: true,       // Giữ ảnh chính ở giữa
-        slidesPerView: "auto",      // Tự động tính toán số lượng slide hiển thị
-        spaceBetween: 40,           // Khoảng cách giữa các phần tử
-        autoplay: {
-            delay: 3000,
-            disableOnInteraction: false,
-        },
-        speed: 800,
-        navigation: {
-            nextEl: ".swiper-button-next",
-            prevEl: ".swiper-button-prev",
-        },
-        pagination: {
-            el: ".swiper-pagination",
-            clickable: true,
-        },
-    });
-</script>
+    <div class="action-bar mb-4">
+        <h2 class="page-brand">DANANG <span class="text-primary">SAFE MAP</span></h2>
+    </div>
+
+    @if (spotlight != null)
+    {
+        <div class="spotlight-section mb-5">
+            <a asp-controller="Article" asp-action="Details" asp-route-id="@spotlight.Id" class="text-decoration-none">
+                <div class="spotlight-card">
+                     <img src="@spotlight.ImageUrl" alt="@spotlight.Title" onerror="this.src='/images/default.jpg'" />
+                    <div class="spotlight-overlay">
+                        <span class="badge bg-danger mb-2">HOT NEWS</span>
+                        <h1>@spotlight.Title</h1>
+                        <p>@spotlight.Summary</p>
+                        <div class="small"><i class="bi bi-eye"></i> @spotlight.ViewCount lượt xem</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    }
+
+    <div class="featured-slider-wrapper mb-5">
+        <h3 class="section-title">TIN NỔI BẬT</h3>
+        <div class="featured-slider">
+            @foreach (var item in featuredSlides)
+            {
+                <div class="fd-item">
+                    <a asp-controller="Article" asp-action="Details" asp-route-id="@item.Id" class="text-decoration-none text-dark">
+                        <div class="fd-thumb">
+                           <img src="@item.ImageUrl" alt="@item.Title" onerror="this.src='/images/default.jpg'" />
+                        </div>
+                        <p class="fd-title">@item.Title</p>
+                        <small class="text-muted"><i class="bi bi-eye"></i> @item.ViewCount</small>
+                    </a>
+               </div>
+            }
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div class="newfeed-section">
+            <h3 class="section-title">DÒNG TIN MỚI</h3>
+            <div id="newFeedContainer">
+                <partial name="_ArticleSection" model="initialNewFeed" />
+            </div>
+            <div id="loader" class="text-center my-4" style="display:none;">
+                <div class="spinner-border text-primary"></div>
+            </div>
+        </div>
+
+        <div class="trending-section">
+            <div class="sticky-top" style="top: 100px;">
+                <h3 class="section-title border-danger">TIÊU ĐIỂM 2026</h3>
+                @{ int rank = 1; }
+                @foreach (var item in spotlightYear)
+                {
+                    <div class="trending-row d-flex mb-3">
+                        <span class="rank-num">#@rank</span>
+                        <a asp-controller="Article" asp-action="Details" asp-route-id="@item.Id" class="text-dark fw-bold text-decoration-none ms-2">@item.Title</a>
+                    </div>
+                    rank++;
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── CITY BANNER (chỉ ảnh, không chữ, bấm → trang bản đồ) ── -->
+<a asp-controller="Map" asp-action="Index" class="city-banner-link">
+    <div class="city-banner">
+        <img src="https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1600&q=80"
+             alt="Đà Nẵng"
+             onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&q=80'" />
+        <div class="city-banner-tint"></div>
+    </div>
+</a>
+
+<!-- ── FOOTER ── -->
+<footer class="art-footer">
+    <div class="art-footer__inner">
+
+        <!-- Brand -->
+        <div class="art-footer__brand">
+            <div class="art-footer__logo">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <span>DaNang SafeMap</span>
+            <p>Hệ thống bản đồ số cảnh báo an ninh đô thị và hỗ trợ tìm người thất lạc tại thành phố Đà Nẵng.</p>
+            <div class="art-footer__socials">
+                <a href="#" aria-label="Facebook">
+                    <svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                </a>
+                <a href="#" aria-label="Twitter">
+                    <svg viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg>
+                </a>
+                <a href="#" aria-label="Youtube">
+                    <svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.54C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Tính năng -->
+        <div class="art-footer__col">
+            <h4>Tính năng</h4>
+            <ul>
+                <li><a asp-controller="Map" asp-action="Index">Bản đồ trực tuyến</a></li>
+                <li><a asp-controller="Article" asp-action="Index">Tin tức an ninh</a></li>
+                <li><a asp-controller="MissingPerson" asp-action="Index">Tìm người thất lạc</a></li>
+                <li><a asp-controller="Alert" asp-action="Index">Báo cáo sự cố</a></li>
+            </ul>
+        </div>
+
+        <!-- Hỗ trợ -->
+        <div class="art-footer__col">
+            <h4>Hỗ trợ</h4>
+            <ul>
+                <li><a href="#">Hướng dẫn sử dụng</a></li>
+                <li><a href="#">Câu hỏi thường gặp</a></li>
+                <li><a href="#">Chính sách bảo mật</a></li>
+                <li><a href="#">Điều khoản sử dụng</a></li>
+            </ul>
+        </div>
+
+        <!-- Liên hệ -->
+        <div class="art-footer__col">
+            <h4>Liên hệ</h4>
+            <ul>
+                <li>
+                    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Đà Nẵng, Việt Nam
+                </li>
+                <li>
+                    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    contact@danangsafemap.vn
+                </li>
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="art-footer__bottom">
+        <span>© 2026 DaNang SafeMap. Bảo lưu mọi quyền.</span>
+        <a href="#">Chính sách bảo mật</a>
+    </div>
+</footer>
+
 
 <style>
-.main-wrapper {
-    background: #fff;
-}
-
-/* ====== FEATURED UPDATE ====== */
-.featured-section {
-    margin-bottom: 80px;
-    padding: 20px 0;
-    overflow: hidden; /* Tránh vỡ layout khi slide phóng to */
-}
-
-.featured-title {
-    font-weight: 800;
-    letter-spacing: 2px;
-    color: #1a6e2e;
-    margin-bottom: 40px;
-}
-
-/* Kích thước mặc định của slide bên cạnh */
-.swiper-slide {
-    width: 700px !important;
-    transition: all 0.5s ease;
-    opacity: 0.4;
-    transform: scale(0.85); /* Thu nhỏ các slide xung quanh */
-}
-
-/* Hiệu ứng khi slide vào giữa (được chọn) */
-.swiper-slide-active {
-    opacity: 1;
-    transform: scale(1.03); /* Phóng to nhẹ slide ở giữa */
-    z-index: 10;
-}
-
-.featured-card {
-    height: 420px;
-    border-radius: 20px;
-    overflow: hidden;
-    position: relative;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-}
-
-.featured-card img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 40px 30px;
-    background: linear-gradient(transparent, rgba(0,0,0,0.9));
-}
-
-.overlay h3 {
-    color: #ffffff;
-    font-weight: 800;
-    font-size: 1.8rem;
-    margin: 0;
-}
-
-/* ====== CONTENT ====== */
-.content-wrapper {
-    margin-left: 5cm;
-    margin-right: 5cm;
-}
-
-/* ====== FAB ====== */
-.fab-post {
-    position: fixed;
-    bottom: 40px;
-    right: 40px;
-    background: #007bff;
-    color: white !important;
-    padding: 16px 28px;
-    border-radius: 50px;
-    font-weight: bold;
-    text-decoration: none;
-    box-shadow: 0 6px 20px rgba(0,123,255,0.4);
-    z-index: 100;
-}
-
-.fab-post:hover {
-    background: #0056b3;
-    transform: translateY(-3px);
-}
-
-/* Custom Swiper Buttons */
-.swiper-button-next, .swiper-button-prev {
-    color: #1a6e2e;
-}
-
-/* Responsive */
-@@media (max-width: 992px) {
-    .content-wrapper {
-        margin-left: 20px;
-        margin-right: 20px;
-    }
-
-    .swiper-slide {
-        width: 320px !important;
-    }
+    .container-main { padding: 0 5cm; margin-top: 30px; }
     
-    .featured-card {
-        height: 250px;
+    .btn-floating-publish {
+        position: fixed; bottom: 30px; right: 30px; z-index: 1000;
+        background-color: #0d6efd; color: white; padding: 15px 25px;
+        border-radius: 50px; text-decoration: none; font-weight: bold;
+        display: flex; align-items: center; gap: 10px;
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+        transition: all 0.3s ease;
     }
-}
+    .btn-floating-publish:hover { background-color: #0b5ed7; transform: translateY(-3px); }
+
+    .page-brand { font-weight: 900; letter-spacing: -1px; }
+    .section-title {
+        font-weight: 800; font-size: 1.1rem;
+        border-left: 5px solid #0d6efd; padding-left: 10px;
+        margin-bottom: 25px; color: #333;
+    }
+
+    .spotlight-card { height: 500px; border-radius: 15px; overflow: hidden; position: relative; }
+    .spotlight-card img { width: 100%; height: 100%; object-fit: cover; }
+    .spotlight-overlay { position: absolute; bottom: 0; padding: 40px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); color: white; width: 100%; }
+
+    .fd-item { padding: 0 0.25cm; } /* Khoảng cách 0.5cm tổng cộng */
+    .fd-thumb { height: 180px; border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
+    .fd-thumb img { width: 100%; height: 100%; object-fit: cover; transition: 0.4s; }
+    .fd-title { font-weight: 700; font-size: 0.95rem; line-height: 1.4; }
+
+    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 50px; }
+    .rank-num { font-size: 1.2rem; font-weight: 900; color: #0d6efd; opacity: 0.5; }
+
+    @@media (max-width: 1400px) { .container-main { padding: 0 20px; } }
+
+    /* ── City Banner ─────────────────────────────── */
+    .city-banner-link { display: block; text-decoration: none; margin-top: 60px; }
+    .city-banner {
+        position: relative;
+        height: 280px;
+        overflow: hidden;
+    }
+    .city-banner img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .city-banner-tint {
+        position: absolute; inset: 0;
+        background: rgba(30, 110, 80, 0.62);
+    }
+
+    /* ── Footer ──────────────────────────────────── */
+    .art-footer {
+        background: #111827;
+        color: #9ca3af;
+        font-size: 0.88rem;
+    }
+    .art-footer__inner {
+        display: grid;
+        grid-template-columns: 1.8fr 1fr 1fr 1fr;
+        gap: 48px;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 56px 32px 40px;
+    }
+    /* Brand column */
+    .art-footer__brand { }
+    .art-footer__logo {
+        width: 42px; height: 42px;
+        background: #16a34a;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 14px;
+    }
+    .art-footer__logo svg {
+        width: 22px; height: 22px;
+        stroke: #fff; fill: none;
+        stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .art-footer__brand > span {
+        display: block;
+        font-size: 1rem; font-weight: 700;
+        color: #fff; margin-bottom: 10px;
+    }
+    .art-footer__brand p { line-height: 1.65; margin-bottom: 20px; }
+    .art-footer__socials { display: flex; gap: 10px; }
+    .art-footer__socials a {
+        width: 36px; height: 36px; border-radius: 8px;
+        background: #1f2937;
+        display: flex; align-items: center; justify-content: center;
+        transition: background 0.2s;
+    }
+    .art-footer__socials a:hover { background: #16a34a; }
+    .art-footer__socials svg {
+        width: 16px; height: 16px;
+        stroke: #9ca3af; fill: none;
+        stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+        transition: stroke 0.2s;
+    }
+    .art-footer__socials a:hover svg { stroke: #fff; }
+    /* Nav columns */
+    .art-footer__col h4 {
+        color: #fff;
+        font-size: 0.85rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .08em;
+        margin-bottom: 16px;
+    }
+    .art-footer__col ul { list-style: none; padding: 0; margin: 0; }
+    .art-footer__col li {
+        display: flex; align-items: center; gap: 8px;
+        margin-bottom: 10px;
+    }
+    .art-footer__col li a {
+        color: #9ca3af; text-decoration: none;
+        transition: color 0.2s;
+    }
+    .art-footer__col li a:hover { color: #fff; }
+    .art-footer__col li svg {
+        width: 14px; height: 14px; flex-shrink: 0;
+        stroke: #16a34a; fill: none;
+        stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    /* Bottom bar */
+    .art-footer__bottom {
+        border-top: 1px solid #1f2937;
+        display: flex; justify-content: center; align-items: center; gap: 20px;
+        padding: 18px 32px;
+        font-size: 0.82rem;
+        color: #6b7280;
+    }
+    .art-footer__bottom a { color: #16a34a; text-decoration: none; }
+    .art-footer__bottom a:hover { text-decoration: underline; }
+
+    @@media (max-width: 900px) {
+        .art-footer__inner { grid-template-columns: 1fr 1fr; gap: 32px; }
+        .city-banner { height: 200px; }
+    }
+    @@media (max-width: 600px) {
+        .art-footer__inner { grid-template-columns: 1fr; }
+    }
 </style>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+
+    <script>
+        $(document).ready(function(){
+            $('.featured-slider').slick({
+                infinite: true,
+                slidesToShow: 4,
+                slidesToScroll: 1,
+                autoplay: true,
+                autoplaySpeed: 3000,
+                arrows: true,
+                dots: false,
+                responsive: [
+                    { breakpoint: 1024, settings: { slidesToShow: 2 } },
+                    { breakpoint: 600, settings: { slidesToShow: 1 } }
+                ]
+            });
+        });
+
+        // Infinite Scroll
+        let page = 2;
+        let isThrottled = false;
+        let hasMore = true;
+        $(window).scroll(function () {
+            if ($(window).scrollTop() + $(window).height() > $(document).height() - 600) {
+                if (!isThrottled && hasMore) {
+                    isThrottled = true;
+                    $("#loader").show();
+            
+                    $.get(`/Article/GetMoreArticles?page=${page}`, function (data) {
+                        if (data.trim().length === 0) {
+                            hasMore = false;
+                            $("#loader").hide();
+                        } else {
+                            $("#newFeedContainer").append(data);
+                            page++;
+                            isThrottled = false;
+                            $("#loader").hide();
+                        }
+                    }).fail(function() {
+                        isThrottled = false;
+                        $("#loader").hide();
+                    });
+                }
+            }
+        });
+    </script>
+}

@@ -2,35 +2,274 @@
 
 @{
     ViewData["Title"] = Model.Title;
+    var related = ViewBag.RelatedArticles as List<DaNangSafeMap.Models.Entities.Article> ?? new();
+
+    string catName = Model.CategoryId switch {
+        1 => "Cảnh báo tội phạm",
+        2 => "Tìm kiếm người thân",
+        _ => "Tin tức cộng đồng"
+    };
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a asp-action="Index">Tin tức</a></li>
-                    <li class="breadcrumb-item active">Chi tiết</li>
-                </ol>
-            </nav>
+<style>
+    /* ── Page shell ─────────────────────────── */
+    .dnews-page { background: #fff; min-height: 100vh; }
 
-            <h1 class="fw-bold mb-3">@Model.Title</h1>
-            <div class="text-muted mb-4">
-                <span><i class="bi bi-person"></i> Tác giả: @(Model.Author?.FullName ?? "Admin")</span> | 
-                <span><i class="bi bi-calendar"></i> @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-            </div>
+    .dnews-wrap {
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
 
-            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+    /* ── Breadcrumb ─────────────────────────── */
+    .dnews-bc {
+        font-size: 0.78rem;
+        color: #888;
+        padding: 18px 0 0;
+        display: flex; gap: 6px; align-items: center;
+    }
+    .dnews-bc a { color: #c0392b; text-decoration: none; font-weight: 600; }
+    .dnews-bc a:hover { text-decoration: underline; }
+
+    /* ── Two-column grid ────────────────────── */
+    .dnews-grid {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 48px;
+        align-items: start;
+        margin-top: 20px;
+    }
+
+    /* ─── LEFT: Article ─────────────────────── */
+    .dnews-cat {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #c0392b;
+        margin-bottom: 10px;
+    }
+    .dnews-title {
+        font-family: Georgia, serif;
+        font-size: clamp(1.5rem, 2.8vw, 2.1rem);
+        font-weight: 800;
+        line-height: 1.3;
+        color: #111;
+        margin-bottom: 14px;
+    }
+    .dnews-summary {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #444;
+        border-left: 3px solid #c0392b;
+        padding-left: 14px;
+        line-height: 1.65;
+        margin-bottom: 18px;
+    }
+    .dnews-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 0.8rem;
+        color: #666;
+        padding: 12px 0;
+        border-top: 1px solid #e5e5e5;
+        border-bottom: 1px solid #e5e5e5;
+        margin-bottom: 24px;
+    }
+    .dnews-meta span { display: flex; align-items: center; gap: 5px; }
+    .dnews-meta .author { font-weight: 700; color: #111; font-size: 0.85rem; text-transform: uppercase; }
+
+    /* Hero image */
+    .dnews-hero { width: 100%; border-radius: 0; margin-bottom: 6px; display: block; }
+    .dnews-caption { font-size: 0.78rem; color: #888; font-style: italic; margin-bottom: 24px; text-align: center; }
+
+    /* Body */
+    .dnews-body {
+        font-size: 1.05rem;
+        line-height: 1.95;
+        color: #222;
+    }
+    .dnews-body p { margin-bottom: 1.3em; }
+    .dnews-body img { max-width: 100%; height: auto; margin: 20px 0; }
+    .dnews-body h2, .dnews-body h3 {
+        font-family: Georgia, serif;
+        color: #111; font-weight: 700;
+        margin: 2em 0 .7em;
+    }
+    .dnews-body blockquote {
+        border-left: 3px solid #c0392b;
+        padding: 10px 18px;
+        color: #555;
+        font-style: italic;
+        background: #fafafa;
+        margin: 20px 0;
+    }
+
+    /* Share */
+    .dnews-share {
+        display: flex; align-items: center; gap: 8px;
+        padding: 16px 0;
+        border-top: 1px solid #e5e5e5;
+        border-bottom: 1px solid #e5e5e5;
+        margin-top: 36px;
+        font-size: 0.8rem; font-weight: 700; color: #111;
+    }
+    .sh-btn {
+        width: 34px; height: 34px; border-radius: 4px;
+        border: 1px solid #ddd; background: #fff;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 0.88rem; color: #444;
+        transition: all .18s;
+    }
+    .sh-btn:hover { background: #c0392b; color: #fff; border-color: #c0392b; }
+
+    /* ─── RIGHT: Sidebar ────────────────────── */
+    .dnews-sidebar { border-left: 1px solid #e5e5e5; padding-left: 24px; }
+
+    .sidebar-lbl {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: #c0392b;
+        border-bottom: 2px solid #c0392b;
+        padding-bottom: 8px;
+        margin-bottom: 18px;
+    }
+
+    .read-item {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 18px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid #f0f0f0;
+        text-decoration: none;
+        color: inherit;
+        transition: opacity .2s;
+    }
+    .read-item:last-child { border-bottom: none; }
+    .read-item:hover { opacity: .78; }
+    .read-item:hover .read-title { color: #c0392b; }
+
+    .read-thumb {
+        width: 78px; height: 58px;
+        flex-shrink: 0;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .read-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .read-title {
+        font-size: 0.83rem;
+        font-weight: 700;
+        line-height: 1.4;
+        color: #111;
+        transition: color .2s;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .read-date { font-size: 0.72rem; color: #999; margin-top: 4px; }
+
+    /* Responsive */
+    @@media (max-width: 900px) {
+        .dnews-grid { grid-template-columns: 1fr; }
+        .dnews-sidebar { border-left: none; border-top: 2px solid #e5e5e5; padding-left: 0; padding-top: 24px; margin-top: 32px; }
+    }
+</style>
+
+<div class="dnews-page">
+<div class="dnews-wrap">
+
+    <!-- Breadcrumb -->
+    <nav class="dnews-bc" aria-label="breadcrumb">
+        <a asp-controller="Article" asp-action="Index">Tin tức</a>
+        <span>›</span>
+        <span>@catName</span>
+        <span>›</span>
+        <span style="color:#333; font-weight:600;">@Model.Title</span>
+    </nav>
+
+    <div class="dnews-grid">
+
+        <!-- ══ MAIN ══════════════════════════════ -->
+        <main>
+            <div class="dnews-cat">@catName</div>
+            <h1 class="dnews-title">@Model.Title</h1>
+
+            @if (!string.IsNullOrEmpty(Model.Summary))
             {
-                <img src="@Model.ImageUrl" class="img-fluid rounded shadow mb-4" alt="Main Image">
+                <p class="dnews-summary">@Model.Summary</p>
             }
 
-            <div class="article-content lead" style="line-height: 1.8; text-align: justify;">
-                @Html.Raw(Model.Content)
+            <!-- Meta -->
+            <div class="dnews-meta">
+                <span>
+                    <span class="author">@(Model.Author?.FullName ?? "Ban biên tập")</span>
+                </span>
+                <span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    @Model.CreatedAt.ToString("dd/MM/yyyy, HH:mm")
+                </span>
+                <span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    @Model.ViewCount lượt xem
+                </span>
             </div>
 
-            <hr class="my-5">
-            <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Quay lại</a>
-        </div>
+            <!-- Hero image -->
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" alt="@Model.Title" class="dnews-hero"
+                     onerror="this.style.display='none'" />
+                <p class="dnews-caption">Ảnh: @(Model.Author?.FullName ?? "Ban biên tập")</p>
+            }
+
+            <!-- Body -->
+            <article class="dnews-body">
+                @Html.Raw(Model.Content)
+            </article>
+
+            <!-- Share -->
+            <div class="dnews-share">
+                <span>CHIA SẺ:</span>
+                <button class="sh-btn" title="Facebook" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(location.href),'_blank')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                </button>
+                <button class="sh-btn" title="Copy link" onclick="navigator.clipboard.writeText(location.href);this.innerHTML='✓';setTimeout(()=>this.innerHTML='🔗',1800)">🔗</button>
+                <button class="sh-btn" title="In bài" onclick="window.print()">🖨</button>
+                <a asp-action="Index" style="margin-left:auto; font-size:.78rem; color:#888; text-decoration:none;">← Quay lại danh sách</a>
+            </div>
+        </main>
+
+        <!-- ══ SIDEBAR ════════════════════════════ -->
+        <aside class="dnews-sidebar">
+            <div class="sidebar-lbl">ĐỌC TIẾP</div>
+
+            @if (related.Any())
+            {
+                foreach (var item in related)
+                {
+                    <a asp-controller="Article" asp-action="Details" asp-route-id="@item.Id" class="read-item">
+                        <div class="read-thumb">
+                            <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/no-image.jpg" : item.ImageUrl)"
+                                 alt="@item.Title"
+                                 onerror="this.src='/images/no-image.jpg'" />
+                        </div>
+                        <div>
+                            <div class="read-title">@item.Title</div>
+                            <div class="read-date">@item.CreatedAt.ToString("dd/MM/yyyy")</div>
+                        </div>
+                    </a>
+                }
+            }
+            else
+            {
+                <p style="font-size:.82rem; color:#999; font-style:italic;">Chưa có bài viết cùng chuyên mục.</p>
+            }
+        </aside>
     </div>
+
+</div>
 </div>

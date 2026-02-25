@@ -3,28 +3,44 @@
     var title = ViewData["SectionTitle"]?.ToString();
 }
 
-<div class="category-header mb-4">
-    <h4 class="category-title">@title</h4>
-</div>
+@* Hiển thị tiêu đề phân đoạn nếu có [cite: 1] *@
+@if (!string.IsNullOrEmpty(title))
+{
+    <div class="category-header mb-4">
+        <h4 class="category-title">@title</h4>
+    </div>
+}
 
 @if (Model != null && Model.Any())
 {
     <div class="news-list">
         @foreach (var article in Model)
         {
-            <div class="news-row-simple">
+            <div class="news-row-simple" data-id="@article.Id">
                 <div class="news-thumb-box">
                     <a asp-action="Details" asp-route-id="@article.Id">
-                         <img src="@article.ImageUrl" alt="@article.Title">
+                        @* Thêm ảnh mặc định nếu URL ảnh bị trống hoặc lỗi [cite: 2] *@
+                        <img src="@article.ImageUrl" alt="@article.Title" onerror="this.src='/images/default-news.jpg'">
                     </a>
                 </div>
+                
                 <div class="news-info">
                     <a asp-action="Details" asp-route-id="@article.Id" class="text-decoration-none">
                         <h5 class="news-title">@article.Title</h5>
                     </a>
+                    
+                    @* Tóm tắt bài báo [cite: 4] *@
                     <p class="news-excerpt text-muted">@article.Summary</p>
-                    <div class="news-meta">
-                        <i class="bi bi-clock me-1"></i> @article.CreatedAt.ToString("dd/MM/yyyy")
+                    
+                    <div class="news-meta d-flex justify-content-between">
+                        <span class="meta-item">
+                            <i class="bi bi-clock me-1"></i> @article.CreatedAt.ToString("dd/MM/yyyy") [cite: 4]
+                        </span>
+                        
+                        @* Hiển thị lượt xem - Đã sửa để khớp với thuộc tính ViewCount bạn sẽ thêm vào Model  *@
+                        <span class="meta-item text-primary">
+                            <i class="bi bi-eye me-1"></i> @article.ViewCount lượt xem
+                        </span>
                     </div>
                 </div>
             </div>
@@ -33,79 +49,89 @@
 }
 
 <style>
-.category-title {
-    font-weight: 800;
-    color: #1a6e2e;
-    text-transform: uppercase;
-    border-left: 5px solid #1a6e2e;
-    padding-left: 10px;
-    font-size: 1.1rem;
-    letter-spacing: 1px;
-}
+    /* Kiểu dáng tiêu đề mục [cite: 7] */
+    .category-title {
+        font-weight: 800;
+        color: #0d6efd;
+        text-transform: uppercase;
+        border-left: 5px solid #0d6efd;
+        padding-left: 12px;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+    }
 
-.news-row-simple {
-    display: flex;
-    gap: 25px;
-    margin-bottom: 30px;
-    padding-bottom: 25px;
-    border-bottom: 1px solid #ececec;
-}
-
-.news-thumb-box {
-    width: 260px;
-    height: 160px;
-    flex-shrink: 0;
-    overflow: hidden;
-    border-radius: 6px;
-}
-
-.news-thumb-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: 0.4s;
-}
-
-.news-thumb-box:hover img {
-    transform: scale(1.08);
-}
-
-.news-title {
-    font-weight: 700;
-    font-size: 1.15rem;
-    color: #111;
-    line-height: 1.4;
-    margin-bottom: 8px;
-    transition: 0.3s;
-}
-
-.news-title:hover {
-    color: #1a6e2e;
-}
-
-.news-excerpt {
-    font-size: 0.92rem;
-    line-height: 1.6;
-    margin-bottom: 8px;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.news-meta {
-    font-size: 0.85rem;
-    color: #888;
-}
-
-@@media (max-width: 768px) {
+    /* Bố cục dòng tin tức [cite: 8-9] */
     .news-row-simple {
-        flex-direction: column;
+        display: flex;
+        gap: 25px;
+        margin-bottom: 30px;
+        padding-bottom: 25px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.2s ease;
     }
 
+    /* Khung chứa ảnh đại diện [cite: 9-10] */
     .news-thumb-box {
-        width: 100%;
-        height: 200px;
+        width: 260px;
+        height: 160px;
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-}
+
+    .news-thumb-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease; [cite: 10-11]
+    }
+
+    /* Tiêu đề bài viết [cite: 12] */
+    .news-title {
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: #1a1a1a;
+        line-height: 1.4;
+        margin-bottom: 10px;
+        transition: color 0.3s;
+    }
+
+    .news-title:hover {
+        color: #0d6efd; [cite: 12]
+    }
+
+    /* Sapo tin tức - Giới hạn 3 dòng để đều giao diện [cite: 13] */
+    .news-excerpt {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 12px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        color: #555 !important;
+    }
+
+    .news-meta {
+        font-size: 0.85rem;
+        color: #777; [cite: 14]
+    }
+
+    .meta-item i {
+        color: #0d6efd;
+    }
+
+    /* Tương thích mobile  */
+    @@media (max-width: 768px) {
+        .news-row-simple {
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .news-thumb-box {
+            width: 100%;
+            height: 220px;
+        }
+    }
 </style>

@@ -67,6 +67,14 @@ builder.Services.AddScoped<IArticleService, ArticleService>();
 
 // ─── 4. MVC + API ─────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
+// Thêm cấu hình Session
+builder.Services.AddDistributedMemoryCache(); // Đăng ký bộ nhớ đệm
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session tồn tại trong 30p
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
 // Cho phép API trả về JSON
 builder.Services.AddEndpointsApiExplorer();
@@ -95,6 +103,9 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowAll");
+
+// Kích hoạt Session (Phải đặt trước Auth)
+app.UseSession();
 
 // Thứ tự quan trọng: Authentication trước, Authorization sau
 app.UseAuthentication();
