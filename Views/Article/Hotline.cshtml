@@ -1,0 +1,121 @@
+@{
+    ViewData["Title"] = "Hotline khẩn cấp - DaNang SafeMap";
+    Layout = "_Layout";
+}
+
+<link rel="stylesheet" href="~/css/article.css" />
+<div class="article-page-wrapper">
+
+    @await Html.PartialAsync("_ArticleSubNav")
+
+    <div class="article-container" style="padding-top: 24px; padding-bottom: 48px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="font-family: var(--art-serif); font-size: 28px; color: var(--art-accent);">📞 Hotline Khẩn Cấp</h1>
+            <p style="color: var(--art-text-muted); font-size: 15px;">Danh bạ các số điện thoại hỗ trợ khẩn cấp tại Đà Nẵng</p>
+        </div>
+
+        <!-- SỐ KHẨN CẤP QUỐC GIA -->
+        <div class="art-section-header">
+            <h2>🚨 Số khẩn cấp quốc gia</h2>
+        </div>
+        <div class="hotline-grid">
+            <div class="hotline-card police">
+                <div class="hotline-icon">🚔</div>
+                <div class="hotline-name">Công an (An ninh trật tự)</div>
+                <div class="hotline-desc">Trình báo tội phạm, an ninh trật tự, cướp giật</div>
+                <div class="hotline-number"><a href="tel:113">113</a></div>
+            </div>
+            <div class="hotline-card fire">
+                <div class="hotline-icon">🚒</div>
+                <div class="hotline-name">Cứu hỏa — Phòng cháy chữa cháy</div>
+                <div class="hotline-desc">Cháy nổ, giải cứu, sự cố hóa chất</div>
+                <div class="hotline-number"><a href="tel:114">114</a></div>
+            </div>
+            <div class="hotline-card ambulance">
+                <div class="hotline-icon">🚑</div>
+                <div class="hotline-name">Cấp cứu y tế</div>
+                <div class="hotline-desc">Tai nạn, cấp cứu, xe cứu thương</div>
+                <div class="hotline-number"><a href="tel:115">115</a></div>
+            </div>
+        </div>
+
+        <!-- ĐÀ NẴNG -->
+        <div class="art-section-header">
+            <h2>🏛️ Cơ quan chức năng Đà Nẵng</h2>
+        </div>
+        <div class="hotline-grid">
+            <div class="hotline-card police">
+                <div class="hotline-icon">🏛️</div>
+                <div class="hotline-name">Công an TP. Đà Nẵng</div>
+                <div class="hotline-desc">Tổng đài phản ánh an ninh trật tự</div>
+                <div class="hotline-number"><a href="tel:02363821320">0236 382 1320</a></div>
+            </div>
+            <div class="hotline-card police">
+                <div class="hotline-icon">🚓</div>
+                <div class="hotline-name">Cảnh sát giao thông Đà Nẵng</div>
+                <div class="hotline-desc">Tai nạn giao thông, vi phạm luật giao thông</div>
+                <div class="hotline-number"><a href="tel:02363895043">0236 389 5043</a></div>
+            </div>
+            <div class="hotline-card ambulance">
+                <div class="hotline-icon">🏥</div>
+                <div class="hotline-name">Bệnh viện Đa khoa Đà Nẵng</div>
+                <div class="hotline-desc">Khoa cấp cứu 24/7</div>
+                <div class="hotline-number"><a href="tel:02363821480">0236 382 1480</a></div>
+            </div>
+            <div class="hotline-card ambulance">
+                <div class="hotline-icon">🏥</div>
+                <div class="hotline-name">BV Phụ sản — Nhi Đà Nẵng</div>
+                <div class="hotline-desc">Cấp cứu sản phụ và trẻ em</div>
+                <div class="hotline-number"><a href="tel:02363957777">0236 395 7777</a></div>
+            </div>
+            <div class="hotline-card other">
+                <div class="hotline-icon">🛂</div>
+                <div class="hotline-name">Sở Du lịch Đà Nẵng</div>
+                <div class="hotline-desc">Hỗ trợ du khách, khiếu nại dịch vụ du lịch</div>
+                <div class="hotline-number"><a href="tel:02363550111">0236 355 0111</a></div>
+            </div>
+            <div class="hotline-card other">
+                <div class="hotline-icon">📋</div>
+                <div class="hotline-name">Tổng đài 1022 Đà Nẵng</div>
+                <div class="hotline-desc">Phản ánh, kiến nghị về đời sống đô thị</div>
+                <div class="hotline-number"><a href="tel:1022">1022</a></div>
+            </div>
+        </div>
+
+        <!-- TIỆN ÍCH -->
+        <div class="art-section-header">
+            <h2>⚡ Dịch vụ tiện ích</h2>
+        </div>
+        <div class="hotline-grid">
+            <div class="hotline-card electricity">
+                <div class="hotline-icon">⚡</div>
+                <div class="hotline-name">Điện lực Đà Nẵng</div>
+                <div class="hotline-desc">Sự cố điện, mất điện, cháy nổ điện</div>
+                <div class="hotline-number"><a href="tel:19006969">1900 6969</a></div>
+            </div>
+            <div class="hotline-card water">
+                <div class="hotline-icon">💧</div>
+                <div class="hotline-name">Cấp nước Đà Nẵng (Dawaco)</div>
+                <div class="hotline-desc">Sự cố nước, mất nước, rò rỉ</div>
+                <div class="hotline-number"><a href="tel:02363605555">0236 360 5555</a></div>
+            </div>
+            <div class="hotline-card other">
+                <div class="hotline-icon">🛡️</div>
+                <div class="hotline-name">Bảo vệ trẻ em</div>
+                <div class="hotline-desc">Bạo lực, xâm hại trẻ em</div>
+                <div class="hotline-number"><a href="tel:111">111</a></div>
+            </div>
+            <div class="hotline-card other">
+                <div class="hotline-icon">💚</div>
+                <div class="hotline-name">Hỗ trợ sức khỏe tâm thần</div>
+                <div class="hotline-desc">Tư vấn tâm lý, khủng hoảng tinh thần</div>
+                <div class="hotline-number"><a href="tel:1800599979">1800 599 979</a></div>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+    <script src="~/js/article.js"></script>
+}
+</div>
+

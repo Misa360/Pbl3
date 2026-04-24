@@ -1,0 +1,258 @@
+    @{
+    ViewData["Title"] = "SafeWiki - Cẩm nang an toàn";
+    Layout = "_Layout";
+}
+
+<link rel="stylesheet" href="~/css/article.css" />
+<div class="article-page-wrapper">
+
+    @await Html.PartialAsync("_ArticleSubNav")
+
+    <div class="article-container" style="padding-top: 24px; padding-bottom: 48px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="font-family: var(--art-serif); font-size: 28px; color: var(--art-accent);">📖 SafeWiki — Cẩm nang An toàn</h1>
+            <p style="color: var(--art-text-muted); font-size: 15px;">Lật từng trang để tìm hiểu các kiến thức an toàn quan trọng tại Đà Nẵng</p>
+        </div>
+
+        <!-- FLIPBOOK CONTAINER -->
+        <div id="canvas" style="visibility: hidden;">
+            <div id="book-zoom">
+                <div class="sample-docs"></div>
+                <div class="hard"></div>
+                <div class="hard"></div>
+                <div class="hard p11"></div>
+                <div class="hard p12"></div>
+            </div>
+        </div>
+
+        <div id="slider-bar" class="turnjs-slider">
+            <div id="slider"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/article.js"></script>
+
+    <!-- Flipbook Dependencies -->
+    <script src="~/files/extras/jquery.min.1.7.js"></script>
+    <script src="~/files/extras/jquery-ui-1.8.20.custom.min.js"></script>
+    <script src="~/files/extras/jquery.mousewheel.min.js"></script>
+    <script src="~/files/extras/modernizr.2.5.3.min.js"></script>
+    <script src="~/files/lib/hash.js"></script>
+
+    <!-- Flipbook CSS -->
+    <link rel="stylesheet" href="~/files/css/docs.css" />
+    <link rel="stylesheet" href="~/files/css/jquery.ui.css" />
+
+    <!-- Flipbook Core + App Logic -->
+    <script src="~/files/lib/turn.min.js"></script>
+    <script src="~/files/js/docs.js"></script>
+
+    <style>
+        /* Override flipbook styles to integrate with page layout */
+        #canvas {
+            width: 960px;
+            height: 620px;
+            margin: 0 auto 20px;
+        }
+        .sample-docs {
+            margin-top: 20px;
+            width: 942px;
+            height: 600px;
+        }
+        .sample-docs .page {
+            width: 471px;
+            height: 600px;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+        .sample-docs .hard {
+            background-image: url('/files/pics/covers.jpg');
+        }
+        .sample-docs .p2 { background-position: -471px 0; }
+        .sample-docs .p28 {
+            background: linear-gradient(to right, #fff 95%, #dadada 100%);
+        }
+        .sample-docs .p29 { background-position: -942px 0; }
+        .sample-docs .p30 { background-position: -1413px 0; }
+        .sample-docs .even .gradient {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background-image:url('/files/pics/right-border.png');
+            background-position:right top; background-repeat: repeat-y;
+        }
+        .sample-docs .odd .gradient {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background-image:url('/files/pics/left-border.png');
+            background-position:left top; background-repeat: repeat-y;
+        }
+        .sample-docs .loader {
+            background-image:url('/files/pics/loader.gif');
+            width:22px; height:22px; position:absolute; top:280px; left:219px;
+        }
+        .turnjs-slider {
+            width: 500px;
+            margin: 0 auto;
+            padding: 10px 0;
+        }
+        #slider {
+            margin: 0 auto;
+        }
+        .ui-slider {
+            background: #ddd;
+            border-radius: 4px;
+            height: 6px;
+            position: relative;
+        }
+        .ui-slider-handle {
+            background: var(--art-accent, #2D6A4F);
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            position: absolute;
+            top: -6px;
+            cursor: pointer;
+            outline: none;
+        }
+        /* Responsive */
+        @@media (max-width: 1000px) {
+            #canvas { width: 100%; overflow-x: auto; }
+        }
+    </style>
+
+    <script>
+        // Initialize flipbook after all scripts loaded
+        (function () {
+            function initFlipbook() {
+                var flipbook = $('.sample-docs');
+
+                // Wait for CSS to load
+                if (flipbook.width() == 0 || flipbook.height() == 0) {
+                    setTimeout(initFlipbook, 50);
+                    return;
+                }
+
+                // Mousewheel navigation
+                $('#book-zoom').mousewheel(function (event, delta, deltaX, deltaY) {
+                    var data = $(this).data(),
+                        step = 30,
+                        flipbook = $('.sample-docs'),
+                        actualPos = $('#slider').slider('value') * step;
+
+                    if (typeof (data.scrollX) === 'undefined') {
+                        data.scrollX = actualPos;
+                        data.scrollPage = flipbook.turn('page');
+                    }
+
+                    data.scrollX = Math.min($("#slider").slider('option', 'max') * step,
+                        Math.max(0, data.scrollX + deltaX));
+
+                    var actualView = Math.round(data.scrollX / step),
+                        page = Math.min(flipbook.turn('pages'), Math.max(1, actualView * 2 - 2));
+
+                    if ($.inArray(data.scrollPage, flipbook.turn('view', page)) == -1) {
+                        data.scrollPage = page;
+                        flipbook.turn('page', page);
+                    }
+
+                    if (data.scrollTimer) clearInterval(data.scrollTimer);
+                    data.scrollTimer = setTimeout(function () {
+                        data.scrollX = undefined;
+                        data.scrollPage = undefined;
+                        data.scrollTimer = undefined;
+                    }, 1000);
+                });
+
+                // Slider
+                $("#slider").slider({
+                    min: 1,
+                    max: 100,
+                    start: function (event, ui) {
+                        if (!window._thumbPreview) {
+                            _thumbPreview = $('<div />', { 'class': 'thumbnail' }).html('<div></div>');
+                            setPreview(ui.value);
+                            _thumbPreview.appendTo($(ui.handle));
+                        } else
+                            setPreview(ui.value);
+                        moveBar(false);
+                    },
+                    slide: function (event, ui) {
+                        setPreview(ui.value);
+                    },
+                    stop: function () {
+                        if (window._thumbPreview)
+                            _thumbPreview.removeClass('show');
+                        $('.sample-docs').turn('page', Math.max(1, $(this).slider('value') * 2 - 2));
+                    }
+                });
+
+                // Keyboard arrows
+                $(document).keydown(function (e) {
+                    if (e.keyCode === 37) { $('.sample-docs').turn('previous'); }
+                    else if (e.keyCode === 39) { $('.sample-docs').turn('next'); }
+                });
+
+                // Create the flipbook
+                flipbook.turn({
+                    elevation: 50,
+                    acceleration: false,
+                    gradients: true,
+                    autoCenter: true,
+                    duration: 1000,
+                    pages: 12,
+                    when: {
+                        turning: function (e, page, view) {
+                            var book = $(this),
+                                currentPage = book.turn('page'),
+                                pages = book.turn('pages');
+
+                            if (currentPage > 3 && currentPage < pages - 3) {
+                                if (page == 1) {
+                                    book.turn('page', 2).turn('stop').turn('page', page);
+                                    e.preventDefault(); return;
+                                } else if (page == pages) {
+                                    book.turn('page', pages - 1).turn('stop').turn('page', page);
+                                    e.preventDefault(); return;
+                                }
+                            }
+                            Hash.go('page/' + page).update();
+                        },
+                        turned: function (e, page, view) {
+                            var book = $(this);
+                            $('#slider').slider('value', getViewNumber(book, page));
+                            book.turn('center');
+                        },
+                        start: function (e, pageObj) { moveBar(true); },
+                        end: function (e, pageObj) {
+                            var book = $(this);
+                            setTimeout(function () {
+                                $('#slider').slider('value', getViewNumber(book));
+                            }, 1);
+                            moveBar(false);
+                        },
+                        missing: function (e, pages) {
+                            for (var i = 0; i < pages.length; i++)
+                                addPage(pages[i], $(this));
+                        }
+                    }
+                }).turn('page', 2);
+
+                $('#slider').slider('option', 'max', numberOfViews(flipbook));
+                flipbook.addClass('animated');
+
+                // Show canvas
+                $('#canvas').css({ visibility: 'visible' });
+            }
+
+            // Wait for jQuery and turn.js to be ready, then init
+            function waitAndInit() {
+                if (typeof $ !== 'undefined' && $.fn && $.fn.turn) {
+                    initFlipbook();
+                } else {
+                    setTimeout(waitAndInit, 100);
+                }
+            }
+            waitAndInit();
+        })();
+    </script>
+}

@@ -1,0 +1,414 @@
+@model List<DaNangSafeMap.Models.Entities.Article>
+@{
+    var mode = ViewBag.Mode as string ?? "public";
+    var currentCat = ViewBag.CurrentCategory as string;
+    
+    // Set Layout based on mode
+    if (mode == "admin") {
+        Layout = "_AdminLayout";
+        ViewData["Title"] = "Quản lý bài viết - Admin";
+    } else {
+        Layout = "_Layout";
+        if (mode == "home") { ViewData["Title"] = "Tin tức tổng hợp - DaNang SafeMap"; }
+        else if (mode == "my") { ViewData["Title"] = "Tin của tôi - DaNang SafeMap"; }
+        else { ViewData["Title"] = (currentCat == "an-ninh" ? "An Ninh" : (currentCat == "doi-song" ? "Đời Sống" : "Tin tức")) + " - DaNang SafeMap"; }
+    }
+
+    var featured = ViewBag.Featured as List<DaNangSafeMap.Models.Entities.Article> ?? new();
+    var allApproved = ViewBag.AllApproved as List<DaNangSafeMap.Models.Entities.Article> ?? new();
+    var latest = ViewBag.Latest as List<DaNangSafeMap.Models.Entities.Article> ?? new();
+    var mostViewed = ViewBag.MostViewed as List<DaNangSafeMap.Models.Entities.Article> ?? new();
+    var categories = ViewBag.Categories as List<DaNangSafeMap.Models.Entities.Category> ?? new();
+    var notifications = ViewBag.Notifications as List<DaNangSafeMap.Models.Entities.Notification> ?? new();
+    var userId = ViewBag.UserId as int?;
+    var role = ViewBag.Role as string;
+    
+    var mainArticle = featured.FirstOrDefault();
+    var sideArticles = featured.Skip(1).Take(3).ToList();
+}
+
+<link rel="stylesheet" href="~/css/article.css" />
+
+@if (mode == "admin")
+{
+    // ══════════════════════════════════════════════
+    // GIAO DIỆN ADMIN (Quản lý duyệt bài)
+    // ══════════════════════════════════════════════
+    <div class="article-container" style="padding-top: 24px; padding-bottom: 48px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h1 style="font-family: var(--art-serif); font-size: 24px; color: var(--art-text); margin: 0;">
+                ⚙️ Quản lý tin tức
+            </h1>
+            <a href="/Article/Create" class="admin-btn approve" style="background: var(--art-primary); text-decoration: none;">+ Viết bài mới</a>
+        </div>
+
+        <div class="an-ninh-tabs" style="border-bottom: 2px solid var(--art-primary); margin-bottom: 24px; display: flex; align-items: flex-end;">
+            <ul style="list-style: none; padding: 0 0 10px 0; margin: 0; display: flex; gap: 20px;">
+                <li id="tab-btn-pending" style="cursor: pointer; font-weight: 600; color: var(--art-accent); border-bottom: 3px solid var(--art-accent); padding-bottom: 6px;" onclick="switchTab('pending')">⏳ Chờ duyệt (@Model.Count)</li>
+                <li id="tab-btn-featured" style="color: #666; cursor: pointer; font-weight: 500; padding-bottom: 6px;" onclick="switchTab('featured')">🌟 Quản lý Tin nổi bật (@allApproved.Count bài)</li>
+            </ul>
+        </div>
+
+        <!-- TAB CHỜ DUYỆT -->
+        <div id="tab-pending">
+            @if (Model.Any())
+            {
+                @foreach (var article in Model)
+                {
+                    <div class="admin-article-card" id="article-card-@article.Id">
+                        <div class="admin-article-card__title">@article.Title</div>
+                        <div class="admin-article-card__meta">
+                            ✍️ @(article.Author?.FullName ?? "Ẩn danh") &nbsp;|&nbsp;
+                            📂 @(article.Category?.Name ?? "-") &nbsp;|&nbsp;
+                            📅 @article.CreatedAt?.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                        @if (!string.IsNullOrEmpty(article.Summary))
+                        {
+                            <div class="admin-article-card__summary">@article.Summary</div>
+                        }
+                        @if (!string.IsNullOrEmpty(article.ImageUrl))
+                        {
+                            <div style="margin-bottom: 12px;">
+                                <img src="@article.ImageUrl" alt="" style="max-width: 300px; max-height: 180px; border-radius: 6px; object-fit: cover;" />
+                            </div>
+                        }
+                        <details style="margin-bottom: 12px;">
+                            <summary style="cursor: pointer; color: var(--art-accent); font-weight: 600; font-size: 13px;">📄 Xem nội dung đầy đủ</summary>
+                            <div style="padding: 12px; background: #f9f9f9; border-radius: 6px; margin-top: 8px; font-size: 14px; line-height: 1.6;">
+                                @Html.Raw(article.Content)
+                            </div>
+                        </details>
+                        <div class="admin-article-card__actions">
+                            <button class="admin-btn approve" onclick="ArticleApp.approveArticle(@article.Id)">✅ Duyệt bài</button>
+                            <button class="admin-btn reject" onclick="ArticleApp.openRejectModal(@article.Id)">❌ Từ chối</button>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="no-articles">
+                    <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <p>Không có bài viết nào chờ duyệt 🎉</p>
+                </div>
+            }
+        </div>
+
+        <!-- TAB TIN NỔI BẬT: hiển thị TẤT CẢ bài đã duyệt, cho phép đánh dấu/bỏ nổi bật -->
+        <div id="tab-featured" style="display:none;">
+            <p style="color: #666; font-size: 13px; margin-bottom: 16px;">💡 Chọn bài viết nào nên xuất hiện ở mục <strong>Tin nổi bật</strong> trên trang chủ. Các bài đang được đánh dấu ⭐ sẽ hiển thị đầu tiên.</p>
+            @if (allApproved.Any())
+            {
+                @foreach (var article in allApproved)
+                {
+                    var isFeat = article.IsFeatured == true;
+                    <div class="admin-article-card" id="feat-card-@article.Id" style="border-left-color: @(isFeat ? "#f39c12" : "#d5d8dc");">
+                        <div style="display:flex; justify-content: space-between; align-items:start;">
+                            <div>
+                                <div class="admin-article-card__title">
+                                    @if (isFeat){ <span style="color:#f39c12; margin-right:4px;">⭐</span> }
+                                    <a href="/Article/Details/@article.Id" target="_blank" style="color: inherit; text-decoration: none;">@article.Title</a>
+                                </div>
+                                <div class="admin-article-card__meta" style="margin-top:6px;">
+                                    ✍️ @(article.Author?.FullName ?? "Ẩn danh") &nbsp;|&nbsp;
+                                    📂 @(article.Category?.Name ?? "-") &nbsp;|&nbsp;
+                                    📅 @article.CreatedAt?.ToString("dd/MM/yyyy HH:mm")
+                                </div>
+                            </div>
+                            <button id="btn-feat-@article.Id"
+                                    class="admin-btn @(isFeat ? "reject" : "approve")"
+                                    style="white-space:nowrap; flex-shrink:0; margin-left:16px;"
+                                    onclick="toggleFeatured(@article.Id, @(isFeat ? "true" : "false"))">
+                                @(isFeat ? "❌ Bỏ nổi bật" : "⭐ Đặt nổi bật")
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="no-articles">
+                    <p>Chưa có bài viết nào được duyệt.</p>
+                </div>
+            }
+        </div>
+
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            document.getElementById('tab-pending').style.display = 'none';
+            document.getElementById('tab-featured').style.display = 'none';
+            document.getElementById('tab-btn-pending').style.cssText = 'cursor:pointer; font-weight:500; color:#666; padding-bottom:6px;';
+            document.getElementById('tab-btn-featured').style.cssText = 'cursor:pointer; font-weight:500; color:#666; padding-bottom:6px;';
+            
+            var activeTab = document.getElementById('tab-' + tabName);
+            var activeBtn = document.getElementById('tab-btn-' + tabName);
+            if (activeTab) activeTab.style.display = 'block';
+            if (activeBtn) {
+                activeBtn.style.color = 'var(--art-accent)';
+                activeBtn.style.fontWeight = '700';
+                activeBtn.style.borderBottom = '3px solid var(--art-accent)';
+            }
+        }
+
+        function toggleFeatured(id, currentlyFeatured) {
+            var isFeat = currentlyFeatured === true || currentlyFeatured === 'true';
+            fetch('/Article/ToggleFeatured/' + id, { method: 'POST' })
+                .then(res => {
+                    if (res.ok) {
+                        var card = document.getElementById('feat-card-' + id);
+                        var btn = document.getElementById('btn-feat-' + id);
+                        if (isFeat) {
+                            // Was featured, now unfeatured
+                            card.style.borderLeftColor = '#d5d8dc';
+                            btn.textContent = '⭐ Đặt nổi bật';
+                            btn.className = 'admin-btn approve';
+                            btn.setAttribute('onclick', 'toggleFeatured(' + id + ', false)');
+                            // Remove star from title
+                            var star = card.querySelector('.feat-star');
+                            if (star) star.remove();
+                        } else {
+                            // Was not featured, now is
+                            card.style.borderLeftColor = '#f39c12';
+                            btn.textContent = '❌ Bỏ nổi bật';
+                            btn.className = 'admin-btn reject';
+                            btn.setAttribute('onclick', 'toggleFeatured(' + id + ', true)');
+                        }
+                    }
+                });
+        }
+    </script>
+
+    <!-- REJECT MODAL -->
+    <div class="reject-modal" id="reject-modal">
+        <div class="reject-modal__inner">
+            <h3>❌ Từ chối bài viết</h3>
+            <p style="font-size: 14px; color: var(--art-text-muted); margin-bottom: 12px;">
+                Vui lòng nhập lý do từ chối để thông báo cho tác giả:
+            </p>
+            <textarea id="reject-reason" placeholder="Lý do từ chối bài viết..."></textarea>
+            <div class="reject-modal__actions">
+                <button class="admin-btn" style="background: var(--art-border); color: var(--art-text);" onclick="ArticleApp.closeRejectModal()">Hủy</button>
+                <button class="admin-btn reject" onclick="ArticleApp.submitReject()">Xác nhận từ chối</button>
+            </div>
+        </div>
+    </div>
+}
+else if (mode == "my")
+{
+    // ══════════════════════════════════════════════
+    // GIAO DIỆN MY ARTICLES
+    // ══════════════════════════════════════════════
+    <div class="article-page-wrapper">
+        @await Html.PartialAsync("_ArticleSubNav")
+        <div class="article-container" style="padding-top: 40px; padding-bottom: 80px;">
+            <div class="my-articles-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1 style="font-family: var(--art-serif); font-size: 28px; color: var(--art-text);">📝 Bài viết của tôi</h1>
+                <a href="/Article/Create" class="art-btn art-btn-primary">✍️ Viết bài mới</a>
+            </div>
+
+            @if (notifications.Any())
+            {
+                var unread = notifications.Where(n => n.IsRead == false).ToList();
+                <div style="margin-bottom: 28px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 16px; font-weight: 700; color: var(--art-text);">🔔 Thông báo</span>
+                        @if (unread.Any())
+                        {
+                            <span style="background: var(--art-orange); color: #fff; font-size: 11px; font-weight: 700; border-radius: 12px; padding: 2px 8px;">@unread.Count mới</span>
+                        }
+                    </div>
+                    @foreach (var notif in notifications.Take(5))
+                    {
+                        var notifBg = notif.IsRead == false ? "#fef9f0" : "#f9f9f9";
+                        var notifBorder = notif.Type == "APPROVED" ? "#27ae60" : (notif.Type == "REJECTED" ? "#e74c3c" : "#e67e22");
+                        <div style="background: @notifBg; border-left: 4px solid @notifBorder; border-radius: 6px; padding: 12px 16px; margin-bottom: 8px;">
+                            <div style="font-weight: 700; font-size: 14px; color: var(--art-text); margin-bottom: 4px;">@notif.Title</div>
+                            <div style="font-size: 13px; color: var(--art-text-secondary);">@notif.Content</div>
+                            <div style="font-size: 11px; color: var(--art-text-muted); margin-top: 6px;">🕒 @notif.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (Model != null && Model.Any())
+            {
+                <div class="my-articles-list">
+                    @foreach (var article in Model)
+                    {
+                        var statusColor = article.Status == 1 ? "orange" : (article.Status == 2 ? "green" : "red");
+                        var statusText = article.Status == 1 ? "Chờ duyệt" : (article.Status == 2 ? "Đã duyệt" : "Từ chối");
+                        
+                        <div class="my-article-card" style="border: 1px solid #eee; border-radius: 8px; padding: 16px; margin-bottom: 16px; display: flex; gap: 16px; align-items: start;">
+                            @if (!string.IsNullOrEmpty(article.ImageUrl))
+                            {
+                                <img src="@article.ImageUrl" alt="@article.Title" style="width: 120px; height: 80px; object-fit: cover; border-radius: 4px;" />
+                            }
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0 0 8px 0; font-size: 18px;">
+                                    <a href="/Article/Details/@article.Id" style="color: var(--art-text); text-decoration: none;">@article.Title</a>
+                                </h3>
+                                <div style="font-size: 13px; color: var(--art-text-muted); margin-bottom: 8px;">
+                                    <span>📅 @article.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                                    <span style="margin: 0 8px;">|</span>
+                                    <span>👁️ @(article.ViewCount ?? 0) view</span>
+                                </div>
+                                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; color: #fff; background-color: @statusColor;">
+                                    @statusText
+                                </span>
+                                @if (article.Status == 3 && !string.IsNullOrEmpty(article.RejectReason))
+                                {
+                                    <div style="margin-top: 8px; font-size: 13px; color: red; background: #fff0f0; padding: 8px; border-radius: 4px; border-left: 3px solid red;">
+                                        <strong>Lý do từ chối:</strong> @article.RejectReason
+                                    </div>
+                                }
+                            </div>
+                            <div>
+                                <!-- Users không thể xóa bài - admin quản lý -->
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-articles" style="text-align: center; padding: 60px 0; background: #fdfdfd; border-radius: 8px; border: 1px dashed #ddd;">
+                    <p style="color: var(--art-text-muted); margin-bottom: 16px;">Bạn chưa đăng bài viết nào.</p>
+                    <a href="/Article/Create" class="art-btn art-btn-primary">Viết bài đầu tiên</a>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    // ══════════════════════════════════════════════
+    // GIAO DIỆN PUBLIC (Home & Category)
+    // ══════════════════════════════════════════════
+    <div class="article-page-wrapper">
+        <!-- SUB NAVIGATION -->
+        @await Html.PartialAsync("_ArticleSubNav")
+
+        @if (currentCat == "an-ninh")
+        {
+            <!-- SUB-CATEGORY TABS CHO AN NINH -->
+            <div class="an-ninh-tabs" style="border-bottom: 2px solid var(--art-primary); margin-bottom: 24px; padding: 0 5%; display: flex; align-items: flex-end;">
+                <div style="padding: 10px 15px; background: var(--art-primary); color: white; font-weight: bold; font-family: var(--art-serif); border-radius: 4px 4px 0 0; text-transform: uppercase;">AN NINH - TRẬT TỰ</div>
+                <ul style="list-style: none; padding: 0 0 10px 20px; margin: 0; display: flex; gap: 20px; overflow-x: auto; white-space: nowrap;">
+                    <li style="color: var(--art-primary); cursor: pointer; font-weight: 600;" class="active-tab">Tất cả</li>
+                    <li style="color: #666; cursor: pointer; font-weight: 500;">Phòng chống tội phạm không gian mạng</li>
+                    <li style="color: #666; cursor: pointer; font-weight: 500;">Cảnh giác</li>
+                    <li style="color: #666; cursor: pointer; font-weight: 500;">ATGT</li>
+                    <li style="color: #666; cursor: pointer; font-weight: 500;">Vụ việc</li>
+                    <li style="color: #666; cursor: pointer; font-weight: 500;">Vụ án</li>
+                </ul>
+            </div>
+        }
+        else if (currentCat == "doi-song")
+        {
+            <!-- TIEU DE CHO ĐỜI SỐNG -->
+            <div class="an-ninh-tabs" style="border-bottom: 2px solid #2980b9; margin-bottom: 24px; padding: 0 5%;">
+                <h2 style="margin:0; padding: 10px 15px; display: inline-block; background: #2980b9; color: white; font-family: var(--art-serif); border-radius: 4px 4px 0 0; font-size: 16px;">ĐỜI SỐNG ĐÔ THỊ</h2>
+            </div>
+        }
+
+        <div class="article-container">
+            <!-- HERO BLOCK -->
+            @if (mainArticle != null)
+            {
+                <section class="art-hero">
+                    <div class="art-hero__main">
+                        <img src="@(mainArticle.ImageUrl ?? "/images/default-article.jpg")" alt="@mainArticle.Title" />
+                        <div class="art-hero__main-overlay">
+                            <span class="art-hero__main-cat">@(mainArticle.Category?.Name ?? "Tin tức")</span>
+                            <h1 class="art-hero__main-title"><a href="/Article/Details/@mainArticle.Id">@mainArticle.Title</a></h1>
+                            <p class="art-hero__main-summary">@mainArticle.Summary</p>
+                        </div>
+                    </div>
+                    <div class="art-hero__side">
+                        @foreach (var item in sideArticles)
+                        {
+                            <div class="art-hero__side-item">
+                                <div class="art-hero__side-img">
+                                    <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" />
+                                </div>
+                                <div class="art-hero__side-content">
+                                    <h3 class="art-hero__side-title"><a href="/Article/Details/@item.Id">@item.Title</a></h3>
+                                    <span class="art-hero__side-time">@item.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+
+            <!-- MỚI NHẤT + SIDEBAR -->
+            <div class="art-layout">
+                <div>
+                    <div class="art-section-header">
+                        <h2>📰 Tin mới nhất @(currentCat == "an-ninh" ? "- An ninh" : (currentCat == "doi-song" ? "- Đời sống" : "Tổng hợp"))</h2>
+                    </div>
+                    @if (latest.Any())
+                    {
+                        @foreach (var item in latest)
+                        {
+                            <div class="art-list-item">
+                                <div class="art-list-thumb">
+                                    <a href="/Article/Details/@item.Id">
+                                        <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" />
+                                    </a>
+                                </div>
+                                <div class="art-list-body">
+                                    <h3 class="art-list-title"><a href="/Article/Details/@item.Id">@item.Title</a></h3>
+                                    <p class="art-list-summary">@item.Summary</p>
+                                    <div class="art-list-meta">
+                                        <span style="color: var(--art-primary); font-weight: bold;">@item.Category?.Name</span>
+                                        <span style="margin: 0 6px;">|</span>
+                                        <span>📅 @item.CreatedAt?.ToString("dd/MM/yyyy")</span>
+                                        <span style="margin: 0 6px;">|</span>
+                                        <span>👁️ @(item.ViewCount ?? 0)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="no-articles">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            <p>Không có bài viết nào trong mục này</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- SIDEBAR -->
+                <aside class="art-sidebar">
+                    <div class="art-sidebar-box">
+                        <div class="art-sidebar-box__header">🔥 Đọc nhiều nhất</div>
+                        @for (int i = 0; i < mostViewed.Count && i < 10; i++)
+                        {
+                            <div class="art-sidebar-item">
+                                <span class="art-sidebar-num">@(i + 1)</span>
+                                <div class="art-sidebar-title">
+                                    <a href="/Article/Details/@mostViewed[i].Id">@mostViewed[i].Title</a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        @if (userId != null && role != "Admin")
+        {
+            <a href="/Article/Create" class="art-fab" title="Viết bài mới">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </a>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/article.js"></script>
+}

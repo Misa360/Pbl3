@@ -1,0 +1,439 @@
+@{
+    ViewData["Title"] = "Báo cáo của tôi";
+}
+<link rel="stylesheet" href="~/css/map.css" asp-append-version="true" />
+
+<div class="my-reports-page">
+
+    <!-- === HERO HEADER === -->
+    <div class="my-reports-hero">
+        <div class="hero-content">
+            <div class="hero-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="hero-title">Báo cáo của tôi</h1>
+                <p class="hero-sub">Theo dõi trạng thái các sự cố bạn đã đăng</p>
+            </div>
+        </div>
+        <a href="/Map" class="btn-new-report">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Báo cáo mới
+        </a>
+    </div>
+
+    <!-- === STATS === -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat-card"><div class="stat-num" id="stat-total">–</div><div class="stat-label">Tổng báo cáo</div></div>
+        <div class="stat-card stat-card--green"><div class="stat-num" id="stat-visible">–</div><div class="stat-label">Hiển thị trên bản đồ</div></div>
+        <div class="stat-card stat-card--yellow"><div class="stat-num" id="stat-pending">–</div><div class="stat-label">Chờ duyệt</div></div>
+        <div class="stat-card stat-card--red"><div class="stat-num" id="stat-rejected">–</div><div class="stat-label">Từ chối</div></div>
+    </div>
+
+    <!-- === FILTERS === -->
+    <div class="filter-row">
+        <button class="filter-btn active" data-s="" onclick="filterReports(this)">Tất cả</button>
+        <button class="filter-btn" data-s="PENDING_REVIEW" onclick="filterReports(this)">⏳ Chờ duyệt</button>
+        <button class="filter-btn" data-s="VISIBLE_UNVERIFIED" onclick="filterReports(this)">👁 Đang hiển thị</button>
+        <button class="filter-btn" data-s="VISIBLE_VERIFIED" onclick="filterReports(this)">✅ Đã xác thực</button>
+        <button class="filter-btn" data-s="REJECTED" onclick="filterReports(this)">❌ Từ chối</button>
+        <button class="filter-btn" data-s="EXPIRED" onclick="filterReports(this)">⏱ Hết hạn</button>
+    </div>
+
+    <!-- === REPORTS LIST === -->
+    <div id="reportsList" class="reports-list">
+        <div class="loading-center">
+            <div class="load-spinner"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+.my-reports-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+}
+
+/* Hero */
+.my-reports-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.hero-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.hero-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #10B981, #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.hero-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    color: #0F172A;
+}
+
+.hero-sub {
+    margin: 4px 0 0;
+    color: #64748B;
+    font-size: 14px;
+}
+
+.btn-new-report {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #10B981;
+    color: #fff;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-new-report:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(16,185,129,0.3);
+    color: #fff;
+}
+
+/* Stats */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #E2E8F0;
+    padding: 16px 20px;
+    text-align: center;
+}
+
+.stat-card--green { border-top: 3px solid #10B981; }
+.stat-card--yellow { border-top: 3px solid #F59E0B; }
+.stat-card--red { border-top: 3px solid #EF4444; }
+
+.stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0F172A;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.stat-card--green .stat-num { color: #10B981; }
+.stat-card--yellow .stat-num { color: #F59E0B; }
+.stat-card--red .stat-num { color: #EF4444; }
+
+.stat-label {
+    font-size: 12px;
+    color: #64748B;
+    font-weight: 500;
+}
+
+/* Filters */
+.filter-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.filter-btn {
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid #E2E8F0;
+    background: #fff;
+    color: #64748B;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-btn.active, .filter-btn:hover {
+    background: #0F172A;
+    color: #fff;
+    border-color: #0F172A;
+}
+
+/* Reports list */
+.reports-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.report-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #E2E8F0;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.report-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+
+.report-card__top {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px 14px;
+}
+
+.report-card__type-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.report-card__info { flex: 1; min-width: 0; }
+
+.report-card__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0 0 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.report-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 12px;
+    color: #64748B;
+}
+
+.report-card__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-pending { background: #FEF3C7; color: #92400E; }
+.status-visible { background: #D1FAE5; color: #065F46; }
+.status-verified { background: #DBEAFE; color: #1E40AF; }
+.status-rejected { background: #FEE2E2; color: #991B1B; }
+.status-expired { background: #F1F5F9; color: #64748B; }
+
+.report-card__bottom {
+    border-top: 1px solid #F1F5F9;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FAFAFA;
+}
+
+.verify-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: #64748B;
+}
+
+.verify-stats span { display: flex; align-items: center; gap: 4px; }
+
+.report-card__images {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+}
+
+.report-card__images img {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #E2E8F0;
+    cursor: pointer;
+}
+
+.loading-center {
+    display: flex;
+    justify-content: center;
+    padding: 60px;
+}
+
+.load-spinner {
+    width: 32px; height: 32px;
+    border: 3px solid #E2E8F0;
+    border-top-color: #10B981;
+    border-radius: 50%;
+    animation: spin2 0.8s linear infinite;
+}
+
+@@keyframes spin2 { to { transform: rotate(360deg); } }
+
+.empty-msg {
+    text-align: center;
+    padding: 60px 20px;
+    color: #94A3B8;
+    font-size: 15px;
+}
+
+@@media (max-width: 640px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .my-reports-hero { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<script>
+    const API_MY = '/api/alerts/my';
+    const TOKEN = localStorage.getItem('token');
+
+    let allReports = [];
+    let currentFilter = '';
+
+    async function loadMyReports() {
+        if (!TOKEN) {
+            document.getElementById('reportsList').innerHTML =
+                `<div class="empty-msg">
+                    <p>⚠️ Vui lòng <a href="/Auth/Login" style="color:#10B981">đăng nhập</a> để xem báo cáo của bạn.</p>
+                 </div>`;
+            return;
+        }
+
+        try {
+            const res = await fetch(API_MY, {
+                headers: { 'Authorization': `Bearer ${TOKEN}` }
+            });
+            allReports = await res.json();
+            updateStats(allReports);
+            renderReports(allReports);
+        } catch (e) {
+            document.getElementById('reportsList').innerHTML =
+                `<div class="empty-msg">❌ Không thể tải dữ liệu. Vui lòng thử lại.</div>`;
+        }
+    }
+
+    function updateStats(reports) {
+        document.getElementById('stat-total').textContent = reports.length;
+        document.getElementById('stat-visible').textContent =
+            reports.filter(r => r.status === 'VISIBLE_UNVERIFIED' || r.status === 'VISIBLE_VERIFIED').length;
+        document.getElementById('stat-pending').textContent =
+            reports.filter(r => r.status === 'PENDING_REVIEW').length;
+        document.getElementById('stat-rejected').textContent =
+            reports.filter(r => r.status === 'REJECTED').length;
+    }
+
+    function filterReports(btn) {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.s;
+        const filtered = currentFilter
+            ? allReports.filter(r => r.status === currentFilter)
+            : allReports;
+        renderReports(filtered);
+    }
+
+    function renderReports(reports) {
+        const container = document.getElementById('reportsList');
+
+        if (!reports || reports.length === 0) {
+            container.innerHTML = `<div class="empty-msg">Không có báo cáo nào trong mục này.</div>`;
+            return;
+        }
+
+        const statusConfig = {
+            'PENDING_REVIEW':      ['status-pending',  '⏳ Chờ duyệt'],
+            'VISIBLE_UNVERIFIED':  ['status-visible',  '👁 Đang hiển thị'],
+            'VISIBLE_VERIFIED':    ['status-verified', '✅ Đã xác thực'],
+            'REJECTED':            ['status-rejected', '❌ Từ chối'],
+            'EXPIRED':             ['status-expired',  '⏱ Hết hạn'],
+        };
+
+        container.innerHTML = reports.map(r => {
+            const [cls, label] = statusConfig[r.status] || ['status-expired', r.status];
+            const incidentDate = new Date(r.incidentTime).toLocaleString('vi-VN');
+            const created = new Date(r.createdAt).toLocaleDateString('vi-VN');
+            const mediaHtml = r.mediaUrls?.slice(0, 4).map(url =>
+                `<img src="${url}" onclick="window.open('${url}','_blank')" alt="Ảnh" />`
+            ).join('') || '';
+
+            return `
+            <div class="report-card">
+                <div class="report-card__top">
+                    <div class="report-card__type-icon" style="background:${r.categoryColor}22">
+                        ${r.iconEmoji || '⚠️'}
+                    </div>
+                    <div class="report-card__info">
+                        <div class="report-card__title">${escHtml(r.title)}</div>
+                        <div class="report-card__meta">
+                            <span>📍 ${escHtml(r.addressText || 'Không có địa chỉ')}</span>
+                            <span>🕐 ${incidentDate}</span>
+                            <span>📅 Đăng ${created}</span>
+                            <span style="color:${r.categoryColor}">${r.alertTypeName}</span>
+                        </div>
+                    </div>
+                    <div class="report-card__status ${cls}">${label}</div>
+                </div>
+                ${mediaHtml ? `<div style="padding:0 20px 14px"><div class="report-card__images">${mediaHtml}</div></div>` : ''}
+                <div class="report-card__bottom">
+                    <div class="verify-stats">
+                        <span>👍 ${r.confirmCount} xác nhận</span>
+                        <span>👎 ${r.denyCount} phản bác</span>
+                        <span>🔒 Độ tin cậy: ${r.trustScore}/100</span>
+                    </div>
+                    <div style="font-size:12px;color:#94A3B8">
+                        Opacity: ${r.opacity}%
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function escHtml(s) {
+        if (!s) return '';
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    loadMyReports();
+</script>

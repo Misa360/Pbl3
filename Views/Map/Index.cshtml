@@ -1,0 +1,1437 @@
+@{
+    ViewData["Title"] = "Bản đồ An ninh";
+}
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+<style>
+/* ═══ MAP PAGE LAYOUT ═══ */
+.map-page {
+    display: flex;
+    height: calc(100vh - 64px);
+    overflow: hidden;
+    background: #F8FAFC;
+    font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+/* ── SIDEBAR (trái) ── */
+.map-sidebar {
+    width: 340px;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid #E2E8F0;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+}
+
+.sidebar-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+/* Thanh tìm kiếm */
+.search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #F1F5F9;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 8px 12px;
+    transition: all 0.2s;
+}
+
+.search-bar:focus-within {
+    background: #fff;
+    border-color: #10B981;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+}
+
+.search-bar svg { color: #94A3B8; flex-shrink: 0; transition: color 0.2s; }
+.search-bar:focus-within svg { color: #10B981; }
+
+.search-bar input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 13.5px;
+    color: #1E293B;
+    outline: none;
+    font-family: inherit;
+}
+
+.search-bar input::placeholder { color: #94A3B8; }
+
+#search-clear-btn {
+    background: none;
+    border: none;
+    color: #94A3B8;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    display: none;
+}
+
+/* Search dropdown */
+.search-dropdown {
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    margin-top: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    display: none;
+    overflow: hidden;
+}
+
+.search-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #334155;
+    cursor: pointer;
+    border-bottom: 1px solid #F8FAFC;
+    transition: background 0.15s;
+}
+
+.search-dropdown-item:last-child { border-bottom: none; }
+.search-dropdown-item:hover { background: #F0FDF4; color: #10B981; }
+.search-dropdown-item svg { color: #10B981; flex-shrink: 0; }
+
+/* Filter chips */
+.sidebar-filters {
+    padding: 10px 16px 0;
+}
+
+.filter-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #94A3B8;
+    margin-bottom: 8px;
+}
+
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-bottom: 10px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border: 1.5px solid #E2E8F0;
+    background: #fff;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.18s;
+    user-select: none;
+}
+
+.chip:hover { border-color: #10B981; color: #10B981; }
+.chip.active { background: #ECFDF5; border-color: #10B981; color: #059669; font-weight: 600; }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* Alert list */
+.alert-list-section {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.list-header {
+    padding: 12px 16px 8px;
+    font-size: 11px;
+    color: #94A3B8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-top: 1px solid #F1F5F9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.list-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 40px;
+    color: #94A3B8;
+    font-size: 13px;
+}
+
+.mini-spinner {
+    width: 18px; height: 18px;
+    border: 2px solid #E2E8F0;
+    border-top-color: #10B981;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@@keyframes spin { to { transform: rotate(360deg); } }
+
+.alert-item {
+    display: flex;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #F8FAFC;
+    cursor: pointer;
+    transition: background 0.15s;
+    align-items: flex-start;
+}
+
+.alert-item:hover { background: #F8FAFC; }
+.alert-item.active { background: #ECFDF5; }
+
+.alert-item__emoji {
+    font-size: 22px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.alert-item__body { flex: 1; min-width: 0; }
+
+.alert-item__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1E293B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.alert-item__meta {
+    font-size: 11px;
+    color: #94A3B8;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.alert-item__badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 100px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.badge-unverified { background: #FEF3C7; color: #92400E; }
+.badge-verified { background: #D1FAE5; color: #065F46; }
+
+/* Sidebar bottom actions */
+.sidebar-actions {
+    padding: 12px 16px;
+    border-top: 1px solid #F1F5F9;
+    display: flex;
+    gap: 8px;
+}
+
+.btn-action {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    text-decoration: none;
+    font-family: inherit;
+}
+
+.btn-action--primary {
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+}
+
+.btn-action--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(16,185,129,0.4);
+}
+
+.btn-action--outline {
+    background: #F8FAFC;
+    color: #475569;
+    border: 1.5px solid #E2E8F0;
+}
+
+.btn-action--outline:hover { background: #F1F5F9; }
+
+/* ── MAP AREA (phải) ── */
+.map-area {
+    flex: 1;
+    position: relative;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* FAB buttons */
+.fab-group {
+    position: absolute;
+    right: 16px;
+    bottom: 60px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fab {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1.5px solid #E2E8F0;
+    background: #fff;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.fab:hover { background: #10B981; color: #fff; border-color: #10B981; transform: scale(1.05); }
+.fab svg { width: 18px; height: 18px; }
+
+/* Time slider */
+.time-slider-bar {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 8px 20px 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    min-width: 300px;
+    text-align: center;
+}
+
+.time-slider-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #10B981;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+}
+
+.time-slider-bar input[type="range"] {
+    width: 100%;
+    height: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #E2E8F0;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+}
+
+.time-slider-bar input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #10B981;
+    border: 2px solid #fff;
+    box-shadow: 0 0 4px rgba(16,185,129,0.5);
+    cursor: pointer;
+}
+
+.time-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9.5px;
+    color: #94A3B8;
+    margin-top: 2px;
+}
+
+/* ── REPORT PANEL (slide-in) ── */
+.report-panel {
+    position: absolute;
+    top: 0;
+    right: -420px;
+    width: 400px;
+    max-width: 95vw;
+    height: 100%;
+    background: #fff;
+    border-left: 1px solid #E2E8F0;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.1);
+    z-index: 1200;
+    transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.report-panel.open { right: 0; }
+
+.report-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #F1F5F9;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+}
+
+.report-panel__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1E293B;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.report-panel__close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #94A3B8;
+    cursor: pointer;
+}
+
+.report-panel__close:hover { color: #EF4444; }
+
+.report-form {
+    padding: 16px 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.req { color: #EF4444; }
+
+.form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1.5px solid #E2E8F0;
+    background: #F8FAFC;
+    color: #1E293B;
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: #10B981;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+}
+
+.form-textarea { resize: vertical; min-height: 80px; }
+
+.pin-widget {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1.5px dashed #CBD5E1;
+    background: #F8FAFC;
+    font-size: 13px;
+    color: #94A3B8;
+    transition: all 0.2s;
+    cursor: default;
+}
+
+.pin-widget.set {
+    border-color: #10B981;
+    border-style: solid;
+    background: #ECFDF5;
+    color: #059669;
+}
+
+.submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 3px 12px rgba(16,185,129,0.3);
+}
+
+.submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(16,185,129,0.45); }
+.submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.char-hint { font-size: 11px; color: #94A3B8; text-align: right; }
+.char-hint.ok { color: #10B981; }
+
+/* Pin mode banner */
+.pin-banner {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1300;
+    background: #F59E0B;
+    color: #1E293B;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: 0 4px 16px rgba(245,158,11,0.4);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+.pin-banner-cancel {
+    background: rgba(0,0,0,0.12);
+    border: none;
+    color: #1E293B;
+    padding: 3px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* Leaflet popup override */
+.leaflet-popup-content-wrapper {
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
+    border: 1px solid #E2E8F0 !important;
+    padding: 0 !important;
+}
+
+.leaflet-popup-content { margin: 0 !important; }
+
+.popup-wrap { padding: 14px 16px; min-width: 240px; max-width: 300px; }
+
+.popup-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.popup-emoji { font-size: 26px; }
+.popup-title { font-size: 14px; font-weight: 700; color: #1E293B; line-height: 1.3; }
+.popup-type { font-size: 11px; color: #64748B; margin-top: 2px; }
+
+.popup-meta { font-size: 12px; color: #64748B; margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px; }
+
+.popup-desc { font-size: 12.5px; color: #374151; line-height: 1.6; margin-bottom: 10px; max-height: 70px; overflow-y: auto; }
+
+.popup-votes {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.vote-btn {
+    flex: 1;
+    padding: 7px;
+    border-radius: 8px;
+    border: 1.5px solid #E2E8F0;
+    background: #F8FAFC;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    color: #475569;
+}
+
+.vote-btn:hover.confirm { background: #ECFDF5; border-color: #10B981; color: #059669; }
+.vote-btn:hover.deny { background: #FEE2E2; border-color: #EF4444; color: #DC2626; }
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    z-index: 9999;
+    padding: 11px 22px;
+    border-radius: 24px;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+}
+
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: #10B981; color: #fff; }
+.toast.error { background: #EF4444; color: #fff; }
+
+/* Guide modal */
+.guide-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0,0,0,0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.guide-overlay.show { display: flex; }
+
+.guide-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@@keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+.guide-box h3 { font-size: 17px; font-weight: 800; color: #1E293B; margin-bottom: 16px; }
+
+.guide-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+}
+
+.guide-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+}
+
+.guide-text b { font-size: 13px; color: #1E293B; display: block; margin-bottom: 2px; }
+.guide-text p { font-size: 12px; color: #64748B; line-height: 1.6; margin: 0; }
+
+.guide-close-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    background: linear-gradient(135deg, #10B981, #059669);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+/* Responsive */
+@@media (max-width: 768px) {
+    .map-sidebar { display: none; }
+    .map-page { height: calc(100vh - 56px); }
+}
+
+/* Upload zone */
+.upload-zone {
+    border: 2px dashed #CBD5E1;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 12.5px;
+    color: #94A3B8;
+    transition: all 0.2s;
+}
+.upload-zone:hover { border-color: #10B981; color: #10B981; background: #ECFDF5; }
+
+.preview-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.preview-img {
+    width: 64px; height: 64px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid #E2E8F0;
+    cursor: pointer;
+}
+</style>
+
+<div class="map-page">
+    <!-- ── SIDEBAR ── -->
+    <div class="map-sidebar">
+        <div class="sidebar-header">
+            <!-- Tìm kiếm -->
+            <div class="search-bar" id="searchBar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Tìm đường, địa điểm tại Đà Nẵng..." autocomplete="off" />
+                <button id="search-clear-btn">&times;</button>
+            </div>
+            <div class="search-dropdown" id="searchDropdown"></div>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="sidebar-filters">
+            <div class="filter-label">Bộ lọc sự cố</div>
+            <div class="filter-chips" id="filterChips">
+                <button class="chip active" data-id="all">Tất cả</button>
+            </div>
+        </div>
+
+        <!-- Alert list -->
+        <div class="alert-list-section">
+            <div class="list-header">
+                <span>Sự cố gần đây</span>
+                <span id="alertCount" style="color:#10B981">0</span>
+            </div>
+            <div id="alertList">
+                <div class="list-loading">
+                    <div class="mini-spinner"></div> Đang tải...
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="sidebar-actions">
+            <button class="btn-action btn-action--primary" id="btnOpenReport">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Báo cáo sự cố
+            </button>
+            <a href="/Map/MyReports" class="btn-action btn-action--outline">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Của tôi
+            </a>
+        </div>
+    </div>
+
+    <!-- ── MAP AREA ── -->
+    <div class="map-area">
+        <div id="map"></div>
+
+        <!-- FAB buttons -->
+        <div class="fab-group">
+            <button class="fab" id="fabReport" title="Báo cáo sự cố">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+            </button>
+            <button class="fab" id="fabLocate" title="Vị trí của tôi">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                </svg>
+            </button>
+            <button class="fab" id="fabGuide" title="Hướng dẫn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Time slider -->
+        <div class="time-slider-bar">
+            <div class="time-slider-label" id="sliderLabel">24 giờ qua</div>
+            <input type="range" id="timeSlider" min="0" max="3" value="0" step="1"/>
+            <div class="time-labels"><span>24h</span><span>48h</span><span>7 ngày</span><span>30 ngày</span></div>
+        </div>
+
+        <!-- Pin mode banner -->
+        <div class="pin-banner" id="pinBanner">
+            📍 Click bản đồ để chọn vị trí sự cố
+            <button class="pin-banner-cancel" id="cancelPinBtn">Hủy</button>
+        </div>
+
+        <!-- Report panel (slide-in) -->
+        <div class="report-panel" id="reportPanel">
+            <div class="report-panel__header">
+                <div class="report-panel__title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    </svg>
+                    Báo cáo sự cố
+                </div>
+                <button class="report-panel__close" id="closeReportBtn">&times;</button>
+            </div>
+
+            <form class="report-form" id="reportForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label">Loại sự cố <span class="req">*</span></label>
+                    <select class="form-select" id="alertType" name="AlertTypeId" required>
+                        <option value="">— Chọn loại sự cố —</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Vị trí <span class="req">*</span></label>
+                    <div class="pin-widget" id="pinWidget">
+                        📍 <span>Click bản đồ để ghim vị trí</span>
+                    </div>
+                    <input type="hidden" id="lat" name="Latitude" />
+                    <input type="hidden" id="lng" name="Longitude" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Địa chỉ (tùy chọn)</label>
+                    <input class="form-input" type="text" id="addressText" name="AddressText" placeholder="VD: 123 Trần Phú, Hải Châu" maxlength="500"/>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tiêu đề <span class="req">*</span></label>
+                    <input class="form-input" type="text" id="title" name="Title" placeholder="Mô tả ngắn gọn sự cố" required maxlength="200"/>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Mô tả chi tiết <span class="req">*</span></label>
+                    <textarea class="form-textarea" id="description" name="Description" rows="4"
+                              placeholder="Mô tả chi tiết: đối tượng, biển số xe, đặc điểm..." required minlength="20"></textarea>
+                    <div class="char-hint"><span id="charCount">0</span>/20 ký tự tối thiểu</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Thời gian xảy ra <span class="req">*</span></label>
+                    <input class="form-input" type="datetime-local" id="incidentTime" name="IncidentTime" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Ảnh / Video (tùy chọn)</label>
+                    <div class="upload-zone" id="uploadZone">
+                        📎 Nhấn hoặc kéo thả file ảnh vào đây
+                        <input type="file" id="mediaFiles" name="mediaFiles" accept="image/*,video/mp4" multiple hidden/>
+                    </div>
+                    <div class="preview-grid" id="previewGrid"></div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#475569;cursor:pointer">
+                        <input type="checkbox" id="userConfirmed" name="UserConfirmed" value="true"
+                               style="width:16px;height:16px;margin-top:1px;accent-color:#10B981;flex-shrink:0"/>
+                        Tôi xác nhận thông tin là chính xác và chịu trách nhiệm về nội dung
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                    Gửi báo cáo
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Guide Modal -->
+<div class="guide-overlay" id="guideOverlay">
+    <div class="guide-box">
+        <h3>📖 Hướng dẫn sử dụng bản đồ</h3>
+        <div class="guide-item">
+            <div class="guide-icon" style="background:#DBEAFE">🔍</div>
+            <div class="guide-text">
+                <b>Tìm kiếm địa điểm</b>
+                <p>Gõ tên đường hoặc địa danh vào ô tìm kiếm bên trái, chọn kết quả để bản đồ tự di chuyển tới đó.</p>
+            </div>
+        </div>
+        <div class="guide-item">
+            <div class="guide-icon" style="background:#FEF3C7">📍</div>
+            <div class="guide-text">
+                <b>Báo cáo sự cố</b>
+                <p>Nhấn "Báo cáo sự cố" → Click vị trí trên bản đồ → Điền thông tin → Gửi. Báo cáo hiện ngay trên bản đồ.</p>
+            </div>
+        </div>
+        <div class="guide-item">
+            <div class="guide-icon" style="background:#D1FAE5">✅</div>
+            <div class="guide-text">
+                <b>Xác nhận sự cố</b>
+                <p>Click marker → nhấn 👍 hoặc 👎 để xác nhận. Nhiều người xác nhận → marker sáng hơn, đáng tin hơn.</p>
+            </div>
+        </div>
+        <div class="guide-item">
+            <div class="guide-icon" style="background:#F3E8FF">🛡️</div>
+            <div class="guide-text">
+                <b>Admin duyệt</b>
+                <p>Báo cáo hiện ngay khi đăng (nền mờ). Admin xét duyệt → chuyển thành "Đã xác thực" (nền đầy đủ).</p>
+            </div>
+        </div>
+        <button class="guide-close-btn" onclick="document.getElementById('guideOverlay').classList.remove('show')">
+            Đã hiểu rồi! →
+        </button>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <script>
+    // ══════════════════════════════════════════
+    // MAP INIT
+    // ══════════════════════════════════════════
+    const map = L.map('map', {
+        center: [16.054407, 108.202164],
+        zoom: 13,
+        zoomControl: false,
+        maxBounds: [[15.85, 107.80], [16.30, 108.60]],
+        maxBoundsViscosity: 0.8,
+        minZoom: 10, maxZoom: 19
+    });
+
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OSM | CARTO', subdomains: 'abcd', maxZoom: 19
+    }).addTo(map);
+
+    const markerLayer = L.layerGroup().addTo(map);
+    const clusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 50,
+        iconCreateFunction: (c) => {
+            const n = c.getChildCount();
+            const sz = n >= 30 ? 50 : n >= 10 ? 44 : 38;
+            const bg = n >= 30 ? '#EF4444' : n >= 10 ? '#F59E0B' : '#10B981';
+            return L.divIcon({
+                html: `<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${bg};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${n>=30?15:13}px;box-shadow:0 2px 8px rgba(0,0,0,0.25)">${n}</div>`,
+                className: '', iconSize: [sz, sz]
+            });
+        }
+    });
+    
+    // Add heatLayer for Zoom 10-12
+    const heatLayer = L.heatLayer([], { 
+        radius: 25, 
+        blur: 20, 
+        maxZoom: 12,
+        gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'} 
+    });
+
+    let currentAlerts = [];
+    let activeTypeId = 'all';
+    const timeRanges = [24, 48, 168, 720];
+    let currentRange = 24;
+
+    // ══════════════════════════════════════════
+    // LOAD & RENDER ALERTS
+    // ══════════════════════════════════════════
+    async function loadAlerts() {
+        try {
+            const b = map.getBounds();
+            const now = new Date();
+            // fromTime: Đủ rộng để bắt cả IncidentTime tương lai (user nhập sai giờ)
+            // VISIBLE_VERIFIED luôn hiện, chỉ lọc thời gian cho VISIBLE_UNVERIFIED
+            const from = new Date(now - Math.max(currentRange, 72) * 3600000); // min 72h để không miss
+            const toTime = new Date(now.getTime() + 48 * 3600000); // +48h phòng giờ tương lai
+            const url = `/api/alerts/map?southLat=${b.getSouth()}&northLat=${b.getNorth()}&westLng=${b.getWest()}&eastLng=${b.getEast()}&fromTime=${from.toISOString()}&toTime=${toTime.toISOString()}`;
+            const res = await fetch(url);
+            if (!res.ok) return;
+            currentAlerts = await res.json();
+            renderSidebar(currentAlerts);
+            renderMarkers(currentAlerts);
+        } catch (e) { console.error('Load alerts error:', e); }
+    }
+
+    function renderSidebar(alerts) {
+        document.getElementById('alertCount').textContent = alerts.length;
+        const list = document.getElementById('alertList');
+        if (!alerts.length) {
+            list.innerHTML = '<div style="padding:32px 16px;text-align:center;color:#94A3B8;font-size:13px">Không có sự cố nào trong khu vực này</div>';
+            return;
+        }
+        list.innerHTML = alerts.map(a => {
+            const isVerified = a.status === 'VISIBLE_VERIFIED' || a.confirmCount >= 3;
+            const statusClass = isVerified ? 'verified' : 'unverified';
+            const statusText = isVerified ? 'Đã xác thực' : 'Cần xác thực';
+            const timeText = timeAgo(new Date(a.incidentTime));
+            return `<div class="alert-item" onclick="flyToAlert(${a.id}, ${a.latitude}, ${a.longitude})">
+                <div class="alert-item__emoji">${a.iconEmoji || '⚠️'}</div>
+                <div class="alert-item__body">
+                    <div class="alert-item__title">
+                        ${esc(a.title)}
+                        <span class="badge badge-${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="alert-item__meta">
+                        <span>${a.alertTypeName}</span>
+                        <span>🕐 ${timeText}</span>
+                        <span>👍${a.confirmCount} 👎${a.denyCount}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderMarkers(alerts) {
+        markerLayer.clearLayers();
+        clusterGroup.clearLayers();
+        alerts.forEach(a => {
+            const opacity = a.status === 'VISIBLE_VERIFIED' ? 1.0 : 0.6;
+            const color = a.categoryColor || '#64748B';
+            const icon = L.divIcon({
+                className: '',
+                html: `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};opacity:${opacity};border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center">
+                    <span style="transform:rotate(45deg);font-size:15px;line-height:1">${a.iconEmoji||'⚠️'}</span>
+                </div>`,
+                iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36]
+            });
+            const m = L.marker([a.latitude, a.longitude], { icon });
+            m.on('click', () => openPopup(m, a));
+            markerLayer.addLayer(m);
+            clusterGroup.addLayer(L.marker([a.latitude, a.longitude], { icon }).on('click', () => openPopup(m, a)));
+        });
+        updateLayers();
+    }
+
+    function updateLayers() {
+        const z = map.getZoom();
+        if (z <= 12) {
+            map.removeLayer(markerLayer); 
+            map.removeLayer(clusterGroup);
+            if (!map.hasLayer(heatLayer)) map.addLayer(heatLayer);
+        } else if (z <= 15) {
+            map.removeLayer(markerLayer); 
+            map.removeLayer(heatLayer);
+            if (!map.hasLayer(clusterGroup)) map.addLayer(clusterGroup);
+        } else {
+            map.removeLayer(clusterGroup); 
+            map.removeLayer(heatLayer);
+            if (!map.hasLayer(markerLayer)) map.addLayer(markerLayer);
+        }
+    }
+
+    async function openPopup(marker, a) {
+        try {
+            const res = await fetch(`/api/alerts/${a.id}`);
+            const d = await res.json();
+            const isVerified = d.status === 'VISIBLE_VERIFIED' || d.confirmCount >= 3;
+            const statusText = isVerified ? '✅ Đã xác thực' : '⏳ Chờ xác thực';
+            marker.bindPopup(`
+                <div class="popup-wrap">
+                    <div class="popup-head">
+                        <div class="popup-emoji">${d.iconEmoji||'⚠️'}</div>
+                        <div>
+                            <div class="popup-title">${esc(d.title)}</div>
+                            <div class="popup-type">${d.alertTypeName} · ${statusText}</div>
+                        </div>
+                    </div>
+                    <div class="popup-meta">
+                        <span>📍 ${esc(d.addressText||'(không có địa chỉ)')}</span>
+                        <span>🕐 ${timeAgo(new Date(d.incidentTime))}</span>
+                    </div>
+                    <div class="popup-desc">${esc(d.description)}</div>
+                    <div class="popup-votes">
+                        <button class="vote-btn confirm" onclick="vote(${d.id},'CONFIRM')">👍 ${d.confirmCount} Xác nhận</button>
+                        <button class="vote-btn deny" onclick="vote(${d.id},'DENY')">👎 ${d.denyCount} Phủ nhận</button>
+                    </div>
+                </div>`, { maxWidth: 320 }).openPopup();
+        } catch(e) { console.error(e); }
+    }
+
+    async function flyToAlert(id, lat, lng) {
+        map.flyTo([lat, lng], 17, { animate: true, duration: 1.2 });
+        const found = currentAlerts.find(a => a.id === id);
+        if (found) {
+            // highlight sidebar
+            document.querySelectorAll('.alert-item').forEach(el => el.classList.remove('active'));
+            const idx = currentAlerts.indexOf(found);
+            document.querySelectorAll('.alert-item')[idx]?.classList.add('active');
+        }
+    }
+
+    async function vote(alertId, type) {
+        const token = localStorage.getItem('token');
+        if (!token) { showToast('Vui lòng đăng nhập để xác nhận', 'error'); return; }
+        try {
+            const r = await fetch(`/api/alerts/${alertId}/verify`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ verificationType: type })
+            });
+            const d = await r.json();
+            showToast(d.success ? d.message : d.message, d.success ? 'success' : 'error');
+            if (d.success) loadAlerts();
+        } catch { showToast('Lỗi kết nối', 'error'); }
+    }
+
+    // ══════════════════════════════════════════
+    // SEARCH (Nominatim)
+    // ══════════════════════════════════════════
+    const searchInput = document.getElementById('searchInput');
+    const searchDropdown = document.getElementById('searchDropdown');
+    const searchClear = document.getElementById('search-clear-btn');
+    let searchTimer, searchMarker;
+
+    searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim();
+        if (q.length > 0) {
+            searchClear.style.display = 'block';
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => performSearch(q), 500);
+        } else {
+            searchClear.style.display = 'none';
+            searchDropdown.style.display = 'none';
+        }
+    });
+
+    searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        searchClear.style.display = 'none';
+        searchDropdown.style.display = 'none';
+    });
+
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#searchBar') && !e.target.closest('#searchDropdown')) {
+            searchDropdown.style.display = 'none';
+        }
+    });
+
+    async function performSearch(q) {
+        try {
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q + ' Đà Nẵng')}&limit=5`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!data.features || data.features.length === 0) {
+                searchDropdown.innerHTML = '<div class="search-dropdown-item" style="color:#94A3B8;justify-content:center">Không tìm thấy địa điểm</div>';
+            } else {
+                searchDropdown.innerHTML = data.features.map(f => `
+                    <div class="search-dropdown-item" onclick="flyToSearch(${f.geometry.coordinates[1]}, ${f.geometry.coordinates[0]}, '${esc(f.properties.name || f.properties.street || '')}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;flex-direction:column;">
+                            <span>${esc(f.properties.name || f.properties.street || 'Địa điểm')}</span>
+                            <span style="font-size:11px;color:#94A3B8">${esc(f.properties.district || f.properties.city || '')}</span>
+                        </div>
+                    </div>`).join('');
+            }
+            searchDropdown.style.display = 'block';
+        } catch(e) { console.error(e); }
+    }
+
+    function flyToSearch(lat, lng, name) {
+        searchDropdown.style.display = 'none';
+        map.flyTo([lat, lng], 17, { animate: true, duration: 1.5 });
+        if (searchMarker) map.removeLayer(searchMarker);
+        searchMarker = L.marker([lat, lng])
+            .addTo(map)
+            .bindPopup(`<div style="font-size:13px;font-weight:600">📍 ${name}</div>`, { maxWidth: 260 })
+            .openPopup();
+    }
+
+    // ══════════════════════════════════════════
+    // FILTERS
+    // ══════════════════════════════════════════
+    async function loadFilters() {
+        try {
+            const res = await fetch('/api/alerts/types');
+            const types = await res.json();
+            const chips = document.getElementById('filterChips');
+            types.forEach(t => {
+                const btn = document.createElement('button');
+                btn.className = 'chip';
+                btn.dataset.id = t.id;
+                btn.innerHTML = `<span class="dot" style="background:${t.categoryColor||'#666'}"></span>${t.iconEmoji||''} ${t.name}`;
+                btn.addEventListener('click', () => setFilter(t.id, chips));
+                chips.appendChild(btn);
+            });
+            chips.querySelector('[data-id="all"]').addEventListener('click', () => setFilter('all', chips));
+        } catch(e) { console.error(e); }
+    }
+
+    function setFilter(id, chips) {
+        activeTypeId = id;
+        chips.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.id == id));
+        const filtered = id === 'all' ? currentAlerts : currentAlerts.filter(a => a.alertTypeId == id);
+        renderSidebar(filtered);
+        renderMarkers(filtered);
+    }
+
+    // ══════════════════════════════════════════
+    // TIME SLIDER
+    // ══════════════════════════════════════════
+    const slider = document.getElementById('timeSlider');
+    const sliderLabel = document.getElementById('sliderLabel');
+    const labels = ['24 giờ qua', '48 giờ qua', '7 ngày qua', '30 ngày qua'];
+    slider.addEventListener('input', () => {
+        const i = parseInt(slider.value);
+        sliderLabel.textContent = labels[i];
+        currentRange = timeRanges[i];
+        loadAlerts();
+    });
+
+    // ══════════════════════════════════════════
+    // REPORT FORM
+    // ══════════════════════════════════════════
+    let pinActive = false, selectedLat = null, selectedLng = null;
+
+    function openReport() {
+        document.getElementById('reportPanel').classList.add('open');
+    }
+
+    function closeReport() {
+        document.getElementById('reportPanel').classList.remove('open');
+        pinActive = false;
+        document.getElementById('pinBanner').style.display = 'none';
+        map.getContainer().style.cursor = '';
+    }
+
+    document.getElementById('btnOpenReport').addEventListener('click', openReport);
+    document.getElementById('fabReport').addEventListener('click', openReport);
+    document.getElementById('closeReportBtn').addEventListener('click', closeReport);
+
+    async function loadAlertTypes() {
+        try {
+            const res = await fetch('/api/alerts/types');
+            const types = await res.json();
+            const sel = document.getElementById('alertType');
+            types.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = `${t.iconEmoji||''} ${t.name}`;
+                sel.appendChild(opt);
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    // Pin on map
+    map.on('click', e => {
+        if (!pinActive) return;
+        selectedLat = e.latlng.lat;
+        selectedLng = e.latlng.lng;
+        pinActive = false;
+        map.getContainer().style.cursor = '';
+        document.getElementById('pinBanner').style.display = 'none';
+        document.getElementById('lat').value = selectedLat;
+        document.getElementById('lng').value = selectedLng;
+        const pw = document.getElementById('pinWidget');
+        pw.className = 'pin-widget set';
+        pw.innerHTML = `✅ Đã ghim: ${selectedLat.toFixed(5)}, ${selectedLng.toFixed(5)}`;
+        validateForm();
+    });
+
+    document.getElementById('pinWidget').addEventListener('click', () => {
+        pinActive = true;
+        map.getContainer().style.cursor = 'crosshair';
+        const banner = document.getElementById('pinBanner');
+        banner.style.display = 'flex';
+        if (!document.getElementById('reportPanel').classList.contains('open')) openReport();
+    });
+
+    document.getElementById('cancelPinBtn').addEventListener('click', () => {
+        pinActive = false;
+        map.getContainer().style.cursor = '';
+        document.getElementById('pinBanner').style.display = 'none';
+    });
+
+    // Char counter
+    document.getElementById('description').addEventListener('input', function() {
+        const n = this.value.length;
+        const hint = document.getElementById('charCount');
+        hint.textContent = n;
+        hint.parentElement.className = 'char-hint' + (n >= 20 ? ' ok' : '');
+        validateForm();
+    });
+
+    ['alertType', 'title', 'incidentTime', 'userConfirmed'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', validateForm);
+    });
+    document.getElementById('title').addEventListener('input', validateForm);
+
+    function validateForm() {
+        const ok = document.getElementById('alertType').value &&
+                   selectedLat !== null &&
+                   document.getElementById('title').value.trim().length > 0 &&
+                   document.getElementById('description').value.length >= 20 &&
+                   document.getElementById('incidentTime').value &&
+                   document.getElementById('userConfirmed').checked;
+        document.getElementById('submitBtn').disabled = !ok;
+    }
+
+    // Upload zone
+    const uploadZone = document.getElementById('uploadZone');
+    const mediaInput = document.getElementById('mediaFiles');
+    uploadZone.addEventListener('click', () => mediaInput.click());
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor = '#10B981'; });
+    uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor = ''; });
+    uploadZone.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadZone.style.borderColor = '';
+        updatePreviews(e.dataTransfer.files);
+    });
+    mediaInput.addEventListener('change', () => updatePreviews(mediaInput.files));
+
+    function updatePreviews(files) {
+        const grid = document.getElementById('previewGrid');
+        grid.innerHTML = '';
+        [...files].forEach(f => {
+            if (!f.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = e => { const img = document.createElement('img'); img.src = e.target.result; img.className = 'preview-img'; grid.appendChild(img); };
+            reader.readAsDataURL(f);
+        });
+    }
+
+    // Submit
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (!token) { showToast('Vui lòng đăng nhập để báo cáo', 'error'); return; }
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.textContent = 'Đang gửi...';
+
+        try {
+            const fd = new FormData(document.getElementById('reportForm'));
+            // Set thời gian mặc định nếu chưa chọn
+            if (!fd.get('IncidentTime')) fd.set('IncidentTime', new Date().toISOString());
+            const files = document.getElementById('mediaFiles').files;
+            [...files].forEach(f => fd.append('Files', f));
+
+            const res = await fetch('/api/alerts', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
+            });
+            const d = await res.json();
+            if (d.success) {
+                showToast('✅ Báo cáo đã được gửi và hiển thị trên bản đồ!', 'success');
+                closeReport();
+                document.getElementById('reportForm').reset();
+                selectedLat = null; selectedLng = null;
+                document.getElementById('pinWidget').className = 'pin-widget';
+                document.getElementById('pinWidget').innerHTML = '📍 <span>Click bản đồ để ghim vị trí</span>';
+                document.getElementById('previewGrid').innerHTML = '';
+                setTimeout(() => loadAlerts(), 800);
+            } else {
+                showToast(d.message || 'Lỗi gửi báo cáo', 'error');
+            }
+        } catch(err) {
+            showToast('Lỗi kết nối server', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Gửi báo cáo`;
+        }
+    });
+
+    // ══════════════════════════════════════════
+    // FABs & GUIDE
+    // ══════════════════════════════════════════
+    document.getElementById('fabGuide').addEventListener('click', () => {
+        document.getElementById('guideOverlay').classList.add('show');
+    });
+    document.getElementById('guideOverlay').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('show');
+    });
+
+    document.getElementById('fabLocate').addEventListener('click', () => {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(pos => {
+            map.flyTo([pos.coords.latitude, pos.coords.longitude], 16);
+            L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
+                radius: 8, color: '#3B82F6', fillColor: '#3B82F6', fillOpacity: 0.9
+            }).addTo(map).bindPopup('📍 Vị trí của bạn').openPopup();
+        }, () => showToast('Không lấy được vị trí', 'error'));
+    });
+
+    // Map events
+    let moveTimer;
+    map.on('moveend', () => { clearTimeout(moveTimer); moveTimer = setTimeout(loadAlerts, 400); });
+    map.on('zoomend', updateLayers);
+
+    // ══════════════════════════════════════════
+    // UTILS
+    // ══════════════════════════════════════════
+    function showToast(msg, type = 'success') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `toast show ${type}`;
+        setTimeout(() => { t.className = 'toast'; }, 3500);
+    }
+
+    function timeAgo(date) {
+        const diff = (Date.now() - date) / 1000;
+        if (diff < 60) return 'Vừa xong';
+        if (diff < 3600) return `${Math.floor(diff/60)} phút trước`;
+        if (diff < 86400) return `${Math.floor(diff/3600)} giờ trước`;
+        return `${Math.floor(diff/86400)} ngày trước`;
+    }
+
+    function esc(str) {
+        if (!str) return '';
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    // ══════════════════════════════════════════
+    // INIT
+    // ══════════════════════════════════════════
+    // Set datetime default
+    document.getElementById('incidentTime').value = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+
+    loadFilters();
+    loadAlertTypes();
+    loadAlerts();
+    </script>
+}

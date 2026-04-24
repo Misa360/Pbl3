@@ -1,0 +1,401 @@
+@{
+    var role       = ViewBag.Role as string;
+    var categories = ViewBag.Categories as List<DaNangSafeMap.Models.Entities.Category> ?? new();
+
+    if (role == "Admin") {
+        Layout = "_AdminLayout";
+        ViewData["Title"] = "Thêm bài viết - Widget Builder";
+    } else {
+        Layout = "_Layout";
+        ViewData["Title"] = "Viết bài mới - DaNang SafeMap";
+    }
+}
+
+<link rel="stylesheet" href="~/css/article.css" asp-append-version="true" />
+
+@* ══════════════════════════════════════════════════════════════
+   ADMIN — Elementor-style builder
+   ══════════════════════════════════════════════════════════════ *@
+@if (role == "Admin")
+{
+    <div class="cr-builder cr-builder--admin" id="cr-builder">
+
+        @* ── SIDEBAR ── *@
+        <div class="cr-sidebar">
+
+            @* Header *@
+            <div class="cr-sidebar__head cr-sidebar__head--admin">
+                <div class="cr-sidebar__icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </div>
+                <span>Tạo bài báo mới</span>
+            </div>
+
+            @* Panel: Settings *@
+            <div id="panel-settings" class="cr-panel">
+                <form id="adminForm" method="post" action="/Article/Create" enctype="multipart/form-data">
+
+                    <div class="cr-field">
+                        <label>Chuyên mục</label>
+                        <select name="categoryId" required>
+                            @foreach (var cat in categories)
+                            { <option value="@cat.Id">@cat.Name</option> }
+                        </select>
+                    </div>
+
+                    <div class="cr-field">
+                        <label>Tiêu đề bài viết <span class="req">*</span></label>
+                        <textarea name="title" id="adminTitle" rows="2" required placeholder="Nhập tiêu đề..."></textarea>
+                    </div>
+
+                    <div class="cr-field">
+                        <label>Tóm tắt ngắn</label>
+                        <textarea name="summary" rows="3" placeholder="Mô tả ngắn hiển thị dưới tiêu đề..."></textarea>
+                    </div>
+
+                    <div class="cr-field">
+                        <label>Ảnh đại diện</label>
+                        <div class="cr-upload" onclick="document.getElementById('adminImg').click()" tabindex="0"
+                             onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
+                            <svg viewBox="0 0 24 24" width="28" height="28"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <span id="adminImgLabel">Nhấn để chọn ảnh</span>
+                            <small>JPG · PNG · WEBP</small>
+                            <input type="file" id="adminImg" name="image" accept="image/*" style="display:none">
+                        </div>
+                        <img id="adminImgPreview" class="cr-preview" alt="Preview">
+                    </div>
+
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;">
+                        <input type="checkbox" id="isFeatured" name="isFeatured" value="true" style="width:15px;height:15px;accent-color:#e6004c;cursor:pointer;">
+                        <label for="isFeatured" style="margin:0;font-size:12px;font-weight:700;color:#e6004c;text-transform:uppercase;cursor:pointer;">⭐ Tin Nổi Bật</label>
+                    </div>
+
+                    <textarea name="content" id="adminContentHidden" style="display:none"></textarea>
+
+                    <div id="adminAlert" class="cr-alert" style="display:none"></div>
+                </form>
+            </div>
+            
+            @* Footer *@
+            <div class="cr-sidebar__footer">
+                <div class="cr-sidebar__footer-icons">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                </div>
+                <button type="button" class="cr-sidebar__footer-btn" onclick="crAdminSubmit()">CẬP NHẬT</button>
+            </div>
+
+        </div>
+
+        @* ── CANVAS ── *@
+        <div class="cr-canvas-wrap">
+            <textarea id="adminTinyMceCanvas" placeholder="Bắt đầu viết bài tại đây... (Trình soạn thảo sẽ tải trong giây lát)"></textarea>
+        </div>
+    </div>
+}
+else
+{
+    @* ══════════════════════════════════════════════════════════════
+       USER — builder-style (green theme)
+       ══════════════════════════════════════════════════════════════ *@
+    @await Html.PartialAsync("_ArticleSubNav")
+
+    <div class="cr-builder cr-builder--user" id="cr-builder-user">
+
+        @* ── SIDEBAR ── *@
+        <div class="cr-sidebar">
+
+            @* Header *@
+            <div class="cr-sidebar__head cr-sidebar__head--user">
+                <div class="cr-sidebar__icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </div>
+                <span>Viết bài mới</span>
+                <a href="/Article/Index?mode=my" class="cr-sidebar__back">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    Bài của tôi
+                </a>
+            </div>
+
+            @* Tabs *@
+            <div class="cr-tabs">
+                <button class="cr-tab cr-tab--active cr-tab--user" id="tab-info" onclick="crTabUser('info')">
+                    <svg viewBox="0 0 24 24" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Thông tin
+                </button>
+                <button class="cr-tab cr-tab--user" id="tab-media" onclick="crTabUser('media')">
+                    <svg viewBox="0 0 24 24" width="12" height="12"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Ảnh
+                </button>
+            </div>
+
+            @* Panel: Thông tin *@
+            <div id="panel-info" class="cr-panel">
+                <form id="userForm" method="post" action="/Article/Create" enctype="multipart/form-data">
+
+                    <div class="cr-field">
+                        <label>Chuyên mục <span class="req">*</span></label>
+                        <select name="categoryId" required>
+                            @foreach (var cat in categories)
+                            { <option value="@cat.Id">@cat.Name</option> }
+                        </select>
+                    </div>
+
+                    <div class="cr-field">
+                        <label>Tiêu đề <span class="req">*</span></label>
+                        <textarea name="title" id="userTitle" rows="2" required placeholder="Nhập tiêu đề bài viết..."></textarea>
+                    </div>
+
+                    <div class="cr-field">
+                        <label>Tóm tắt</label>
+                        <textarea name="summary" rows="3" placeholder="Mô tả ngắn hiển thị dưới tiêu đề..."></textarea>
+                    </div>
+
+                    <textarea name="content" id="userContentHidden" style="display:none"></textarea>
+                    <input type="file" id="userImg" name="image" accept="image/*" style="display:none">
+
+                    <div class="cr-pending-note">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Bài sẽ được <strong>xét duyệt</strong> trước khi đăng
+                    </div>
+                    <div id="userAlert" class="cr-alert" style="display:none"></div>
+                </form>
+            </div>
+
+            @* Panel: Ảnh *@
+            <div id="panel-media" class="cr-panel" style="display:none">
+                <div class="cr-field">
+                    <label>Ảnh đại diện bài viết</label>
+                    <div class="cr-upload" onclick="document.getElementById('userImg').click()" tabindex="0"
+                         onkeydown="if(event.key==='Enter'||event.key===' ')this.click()">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span id="userImgLabel">Nhấn để chọn ảnh</span>
+                        <small>JPG · PNG · WEBP · Tối đa 5MB</small>
+                    </div>
+                    <img id="userImgPreview" class="cr-preview" alt="Preview">
+                </div>
+                <button type="button" class="cr-insert-img-btn" onclick="crInsertUserImg()">
+                    <svg viewBox="0 0 24 24" width="13" height="13"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Chèn ảnh vào nội dung
+                </button>
+            </div>
+
+            @* Footer *@
+            <div class="cr-sidebar__footer">
+                <div class="cr-sidebar__footer-icons">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                </div>
+                <button type="button" class="cr-sidebar__footer-btn" style="background:var(--art-accent,#2D6A4F);" onclick="crUserSubmit()">CẬP NHẬT</button>
+            </div>
+
+        </div>
+
+        @* ── CANVAS ── *@
+        <div class="cr-canvas-wrap">
+            <textarea id="userTinyMceCanvas" placeholder="Bắt đầu viết bài tại đây... (Trình soạn thảo sẽ tải trong giây lát)"></textarea>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<style>
+/* ── Shared builder layout ── */
+.cr-builder { display: flex; overflow: hidden; background: #f0f2f5; font-family: 'Be Vietnam Pro', sans-serif; }
+.cr-builder--admin { height: calc(100vh - 70px); }
+.cr-builder--user { height: calc(100vh - 64px - 43px); }
+
+/* ── Sidebar ── */
+.cr-sidebar { width: 290px; flex-shrink: 0; background: #fff; border-right: 1px solid #e8ecf0; display: flex; flex-direction: column; z-index: 5; }
+.cr-sidebar__head { padding: 14px 16px; display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 600; font-size: 14px; flex-shrink: 0; }
+.cr-sidebar__head--admin { background: var(--art-accent, #2D6A4F); }
+.cr-sidebar__head--user  { background: var(--art-accent, #2D6A4F); }
+.cr-sidebar__icon { width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.cr-sidebar__back { margin-left: auto; font-size: 11px; color: rgba(255,255,255,0.75); text-decoration: none; display: flex; align-items: center; gap: 3px; }
+.cr-sidebar__back:hover { color: #fff; }
+.cr-sidebar__back svg { stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── Tabs ── */
+.cr-tabs { display: flex; border-bottom: 1px solid #eef1f5; background: #fafbfc; flex-shrink: 0; }
+.cr-tab { flex: 1; padding: 10px 4px; border: none; background: transparent; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #aab; display: flex; align-items: center; justify-content: center; gap: 4px; border-bottom: 2px solid transparent; transition: all 0.2s; font-family: inherit; }
+.cr-tab svg { stroke: currentColor; fill: none; stroke-width: 2; }
+.cr-tab--user:hover { color: var(--art-accent, #2D6A4F); }
+.cr-tab--user.cr-tab--active { color: var(--art-accent, #2D6A4F); border-bottom-color: var(--art-accent, #2D6A4F); background: #fff; }
+
+/* ── Panels ── */
+.cr-panel { padding: 16px; overflow-y: auto; flex: 1; }
+.cr-panel__label { font-size: 10px; font-weight: 700; color: #aab; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 10px; }
+
+/* ── Form fields ── */
+.cr-field { margin-bottom: 16px; }
+.cr-field label { display: block; font-size: 10px; font-weight: 700; color: #6d7882; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.req { color: var(--art-accent, #2D6A4F); }
+.cr-field select, .cr-field textarea, .cr-field input[type="text"] { width: 100%; box-sizing: border-box; border: 1px solid #dfe3ea; border-radius: 5px; padding: 9px 12px; font-size: 13px; color: #333; font-family: inherit; background: #fff; transition: border-color 0.2s; outline: none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.03); resize: none; }
+.cr-field select:focus, .cr-field textarea:focus { border-color: var(--art-accent, #2D6A4F); box-shadow: 0 0 0 3px rgba(45,106,79,0.1); }
+
+/* ── Upload zone ── */
+.cr-upload { border: 2px dashed #dde1e4; border-radius: 8px; padding: 20px 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 12px; color: #aaa; transition: all 0.2s; }
+.cr-upload svg { stroke: var(--art-accent, #2D6A4F); fill: none; stroke-width: 1.5; transition: transform 0.2s; }
+.cr-upload span { font-weight: 600; font-size: 13px; color: #555; }
+.cr-upload:hover { border-color: var(--art-accent, #2D6A4F); background: #f0f7f4; }
+.cr-upload:hover svg { transform: scale(1.1); }
+.cr-preview { max-width:100%; border-radius:6px; margin-top:10px; display:none; box-shadow:0 2px 10px rgba(0,0,0,0.12); }
+
+/* ── Submit & actions ── */
+.cr-pending-note { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #888; margin-bottom: 12px; padding: 8px 10px; background: #fafbfc; border: 1px solid #eef1f5; border-radius: 5px; }
+.cr-pending-note svg { stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+.cr-alert { background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 5px; padding: 8px 12px; font-size: 12px; margin-bottom: 12px; }
+
+/* ── Footer ── */
+.cr-sidebar__footer { background: #33363b; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.cr-sidebar__footer-icons svg { margin-right: 8px; cursor: pointer; stroke: #888; }
+.cr-sidebar__footer-icons svg:hover { stroke: #fff; }
+.cr-sidebar__footer-btn { background: var(--art-accent, #2D6A4F); color: #fff; border: none; padding: 8px 18px; border-radius: 3px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.cr-sidebar__footer-btn:hover { opacity: 0.9; }
+
+/* ── Canvas wrap ── */
+.cr-canvas-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+.tox-tinymce { border-radius: 0 !important; border: none !important; border-left: 1px solid #e8ecf0 !important; }
+
+@@media (max-width: 768px) {
+    .cr-sidebar { width: 240px; }
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   CREATE PAGE JS (cr- prefix, clean version with TinyMCE)
+   ════════════════════════════════════════════════════════════ */
+
+function crTabUser(tab) {
+    ['info','media'].forEach(t => {
+        const tabEl = document.getElementById('tab-' + t);
+        if (tabEl) tabEl.classList.toggle('cr-tab--active', t === tab);
+        const panelEl = document.getElementById('panel-' + t);
+        if (panelEl) panelEl.style.display = t === tab ? 'block' : 'none';
+    });
+}
+
+function crAdminSubmit() {
+    const title   = document.getElementById('adminTitle');
+    const hidden  = document.getElementById('adminContentHidden');
+    const alertEl = document.getElementById('adminAlert');
+
+    const warn = msg => { if (alertEl) { alertEl.textContent = msg; alertEl.style.display = 'block'; } };
+
+    if (!title?.value.trim()) {
+        warn('⚠️ Vui lòng nhập tiêu đề bài viết.');
+        title?.focus(); return;
+    }
+    const content = tinymce.get('adminTinyMceCanvas')?.getContent() || '';
+    if (!content.trim()) { warn('⚠️ Vui lòng nhập nội dung bài viết.'); return; }
+    if (hidden) hidden.value = content;
+    if (alertEl) alertEl.style.display = 'none';
+    document.getElementById('adminForm').submit();
+}
+
+function crUserSubmit() {
+    const title   = document.getElementById('userTitle');
+    const hidden  = document.getElementById('userContentHidden');
+    const alertEl = document.getElementById('userAlert');
+
+    const warn = msg => { if (alertEl) { alertEl.textContent = msg; alertEl.style.display = 'block'; } };
+
+    if (!title?.value.trim()) {
+        crTabUser('info');
+        warn('⚠️ Vui lòng nhập tiêu đề bài viết.');
+        title?.focus(); return;
+    }
+    const content = tinymce.get('userTinyMceCanvas')?.getContent() || '';
+    if (!content.trim()) { warn('⚠️ Vui lòng nhập nội dung bài viết.'); return; }
+    if (hidden) hidden.value = content;
+    if (alertEl) alertEl.style.display = 'none';
+    document.getElementById('userForm').submit();
+}
+
+function crInsertUserImg() {
+    const inp = document.getElementById('userImg');
+    if (inp) inp.click();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const adminImg = document.getElementById('adminImg');
+    if (adminImg) {
+        adminImg.addEventListener('change', function() {
+            if (!this.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const prev = document.getElementById('adminImgPreview');
+                const lbl  = document.getElementById('adminImgLabel');
+                if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
+                if (lbl)  lbl.textContent = '✓ ' + this.files[0].name;
+            };
+            reader.readAsDataURL(this.files[0]);
+        });
+    }
+
+    const userImg = document.getElementById('userImg');
+    if (userImg) {
+        userImg.addEventListener('change', function() {
+            if (!this.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const prev = document.getElementById('userImgPreview');
+                const lbl  = document.getElementById('userImgLabel');
+                if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
+                if (lbl)  lbl.textContent = '✓ ' + this.files[0].name;
+            };
+            reader.readAsDataURL(this.files[0]);
+        });
+    }
+
+    tinymce.init({
+        selector: '#adminTinyMceCanvas, #userTinyMceCanvas',
+        height: '100%',
+        menubar: false,
+        branding: false,
+        elementpath: false,
+        plugins: 'advlist autolink lists link image charmap preview anchor pagebreak searchreplace wordcount visualblocks visualchars code fullscreen insertdatetime media table emoticons',
+        toolbar: 'undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright justify | outdent indent | numlist bullist | forecolor backcolor removeformat | table image media link | fullscreen preview',
+        
+        /* ── KÍCH HOẠT TÍNH NĂNG UPLOAD ẢNH & VIDEO TRỰC TIẾP ── */
+        image_title: true,
+        automatic_uploads: true,
+        file_picker_types: 'image media',
+        images_upload_url: '/Article/UploadImage',
+
+        file_picker_callback: function (cb, value, meta) {
+            var input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            
+            if (meta.filetype == 'image') {
+                input.setAttribute('accept', 'image/*');
+            } else if (meta.filetype == 'media') {
+                input.setAttribute('accept', 'video/*');
+            }
+
+            input.onchange = function () {
+                var file = this.files[0];
+                var reader = new FileReader();
+                reader.onload = function () {
+                    var id = 'blobid' + (new Date()).getTime();
+                    var blobCache =  tinymce.activeEditor.editorUpload.blobCache;
+                    var base64 = reader.result.split(',')[1];
+                    var blobInfo = blobCache.create(id, file, base64);
+                    blobCache.add(blobInfo);
+
+                    cb(blobInfo.blobUri(), { title: file.name });
+                };
+                reader.readAsDataURL(file);
+            };
+
+            input.click();
+        },
+
+        content_style: "body { font-family: 'Be Vietnam Pro', Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.8; color: #333; margin: 2rem auto; max-width: 800px; } p { margin: 0 0 12px; } h2 { border-bottom: 2px solid #2D6A4F; font-size: 22px; padding-bottom: 6px; margin: 24px 0 12px; } blockquote { border-left: 4px solid #2D6A4F; padding-left: 10px; font-style: italic; background: #f0f7f4; margin-left: 0; padding: 10px; border-radius: 4px; }"
+    });
+});
+</script>
+}
