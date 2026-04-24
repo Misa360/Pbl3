@@ -27,7 +27,7 @@
     var sideArticles = featured.Skip(1).Take(3).ToList();
 }
 
-<link rel="stylesheet" href="~/css/article.css" />
+<link rel="stylesheet" href="~/css/article.css" asp-append-version="true" />
 
 @if (mode == "admin")
 {
@@ -287,7 +287,7 @@ else if (mode == "search")
     // KẾT QUẢ TÌM KIẾM /Article?q=...
     // ══════════════════════════════════════════════
     var q = ViewBag.Query as string ?? "";
-    <link rel="stylesheet" href="~/css/article-news.css" />
+    <link rel="stylesheet" href="~/css/article-news.css" asp-append-version="true" />
 
     <div class="bdn-page">
         @await Html.PartialAsync("_ArticleSubNav")
@@ -328,6 +328,7 @@ else if (mode == "search")
                 </div>
             }
         </div>
+        @await Html.PartialAsync("_SiteFooter")
     </div>
 }
 else if (mode == "public" || mode == "home")
@@ -363,7 +364,7 @@ else if (mode == "public" || mode == "home")
         ["doi-song"] = new[] { "Đô thị", "Môi trường", "Cộng đồng", "Văn hoá" }
     };
 
-    <link rel="stylesheet" href="~/css/article-news.css" />
+    <link rel="stylesheet" href="~/css/article-news.css" asp-append-version="true" />
 
     <div class="bdn-page">
         @await Html.PartialAsync("_ArticleSubNav")
@@ -546,19 +547,6 @@ else if (mode == "public" || mode == "home")
                             <a href="/Article?categorySlug=@c.Slug">@c.Name.ToUpper()</a>
                             <span class="bdn-block__rule"></span>
                         </h2>
-                        @if (subCats.Any())
-                        {
-                            <div class="bdn-block__subs">
-                                @for (int i = 0; i < subCats.Length; i++)
-                                {
-                                    <a href="/Article?categorySlug=@c.Slug">@subCats[i]</a>
-                                    if (i < subCats.Length - 1)
-                                    {
-                                        <span class="bdn-block__sub-sep">|</span>
-                                    }
-                                }
-                            </div>
-                        }
                     </header>
 
                     <div class="bdn-block__grid">
@@ -717,6 +705,8 @@ else if (mode == "public" || mode == "home")
                 <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </a>
         }
+
+        @await Html.PartialAsync("_SiteFooter")
     </div>
 
 }
