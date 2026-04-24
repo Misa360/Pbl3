@@ -625,3 +625,118 @@
     .bdn-cat__row { grid-template-columns: 120px 1fr; gap: 12px; }
     .bdn-cat__big-title { font-size: 18px; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   HOMEPAGE RIGHT RAIL: duo sidecards + "Sự kiện & bình luận" widget
+   ════════════════════════════════════════════════════════════════ */
+.bdn-sidecard__duo {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 16px;
+}
+.bdn-sidecard.bdn-sidecard--sm { margin-bottom: 0; }
+.bdn-sidecard.bdn-sidecard--sm .bdn-sidecard__img { margin-bottom: 6px; }
+.bdn-sidecard__title-sm {
+    font-family: var(--bdn-serif); font-weight: 700; font-size: 13.5px;
+    line-height: 1.35; margin: 0; color: var(--bdn-ink);
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.bdn-sidecard--sm:hover .bdn-sidecard__title-sm { color: var(--bdn-red); }
+
+.bdn-event {
+    border: 1px solid #f7d0d2; background: #fff5f6;
+    border-radius: 2px; margin-top: 6px; overflow: hidden;
+}
+.bdn-event__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; border-bottom: 1px solid #f7d0d2;
+}
+.bdn-event__label {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--bdn-sans); font-weight: 700; font-size: 12.5px;
+    color: var(--bdn-red); text-transform: uppercase; letter-spacing: 0.6px;
+}
+.bdn-event__label svg { width: 15px; height: 15px; stroke: var(--bdn-red); }
+.bdn-event__nav { display: inline-flex; gap: 4px; }
+.bdn-event__btn {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; border: 1px solid #e7b7ba; color: var(--bdn-red);
+    font-size: 13px; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.bdn-event__btn:hover { background: var(--bdn-red); color: #fff; }
+.bdn-event__body {
+    display: block; padding: 12px 14px 14px; text-decoration: none; color: var(--bdn-ink);
+}
+.bdn-event__title {
+    font-family: var(--bdn-serif); font-weight: 700; font-size: 15px;
+    line-height: 1.35; margin: 0 0 6px;
+}
+.bdn-event__body:hover .bdn-event__title { color: var(--bdn-red); }
+.bdn-event__sum {
+    margin: 0 0 8px; font-size: 12.5px; color: var(--bdn-lead); line-height: 1.45;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.bdn-event__meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--bdn-muted);
+}
+.bdn-event__meta strong { color: var(--bdn-ink); text-transform: uppercase; letter-spacing: .4px; }
+
+/* ════════════════════════════════════════════════════════════════
+   TIÊU ĐIỂM — horizontal auto-scroll carousel
+   • Uses CSS keyframes for smooth infinite scroll.
+   • Pauses when user hovers any card (via JS toggling a class).
+   ════════════════════════════════════════════════════════════════ */
+.bdn-focus {
+    background: #fff6f6; padding: 18px 0 22px; margin: 24px 0 8px;
+    border-top: 1px solid var(--bdn-line); border-bottom: 1px solid var(--bdn-line);
+}
+.bdn-focus__head {
+    max-width: var(--bdn-container-w); margin: 0 auto 14px; padding: 0 18px;
+}
+.bdn-focus__title {
+    margin: 0; font-family: var(--bdn-sans); font-size: 18px; font-weight: 800;
+    color: var(--bdn-red); text-transform: uppercase; letter-spacing: 1px;
+    padding-top: 6px; border-top: 2px solid var(--bdn-red); display: inline-block;
+}
+.bdn-focus__viewport {
+    overflow: hidden; max-width: var(--bdn-container-w); margin: 0 auto; padding: 0 18px;
+}
+.bdn-focus__track {
+    display: flex; gap: 14px; width: max-content;
+    animation: bdnFocusScroll 60s linear infinite;
+    will-change: transform;
+}
+.bdn-focus__track.is-paused { animation-play-state: paused; }
+@keyframes bdnFocusScroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+.bdn-focus__card {
+    flex: 0 0 260px; position: relative; display: block;
+    text-decoration: none; color: #fff;
+    border-radius: 4px; overflow: hidden; background: #000;
+}
+.bdn-focus__img {
+    width: 100%; aspect-ratio: 3/4; background: #333;
+}
+.bdn-focus__img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+.bdn-focus__card:hover .bdn-focus__img img { transform: scale(1.04); }
+.bdn-focus__overlay {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 16px 14px 14px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0) 100%);
+}
+.bdn-focus__card-title {
+    margin: 0; color: #fff; font-family: var(--bdn-serif); font-weight: 700;
+    font-size: 15px; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+    .bdn-focus__card { flex: 0 0 220px; }
+}
+@media (max-width: 640px) {
+    .bdn-focus__card { flex: 0 0 180px; }
+    .bdn-sidecard__duo { grid-template-columns: 1fr; }
+}

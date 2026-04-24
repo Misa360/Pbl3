@@ -12,10 +12,15 @@
 
 <nav class="art-subnav">
     <div class="art-subnav__inner">
-        <a href="/Article" class="@(isHome ? "active" : "")">🏠 Trang chủ</a>
-        <a href="/Article/Index?categorySlug=an-ninh" class="@(isAnNinh ? "active" : "")">🛡️ An ninh</a>
-        <a href="/Article/Index?categorySlug=doi-song" class="@(isDoiSong ? "active" : "")">🏘️ Đời sống</a>
-        <a href="/Article/SafeWiki" class="@(isWiki ? "active" : "")">📖 SafeWiki</a>
+        <a href="/Article" class="art-subnav__home @(isHome ? "active" : "")" aria-label="Trang chủ tin tức" title="Trang chủ tin tức">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 11.5 12 4l9 7.5"/>
+                <path d="M5 10.5V20a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1v-9.5"/>
+            </svg>
+        </a>
+        <a href="/Article/Index?categorySlug=an-ninh" class="@(isAnNinh ? "active" : "")">An ninh</a>
+        <a href="/Article/Index?categorySlug=doi-song" class="@(isDoiSong ? "active" : "")">Đời sống</a>
+        <a href="/Article/SafeWiki" class="@(isWiki ? "active" : "")">SafeWiki</a>
 
         <div class="art-subnav__right">
             <form class="art-subnav-search" action="/Article" method="get" role="search">

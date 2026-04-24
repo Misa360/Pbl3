@@ -56,6 +56,12 @@
     color: #fff; background: rgba(255,255,255,0.16);
     border-bottom-color: #ffca28;
 }
+.art-subnav__home { padding: 8px 12px !important; }
+.art-subnav__home svg {
+    width: 22px; height: 22px; color: rgba(255,255,255,0.92);
+    display: block;
+}
+.art-subnav__home:hover svg, .art-subnav__home.active svg { color: #fff; }
 .art-subnav-search__btn {
     background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.25);
     color: #fff; font-size: 12px; font-weight: 600;

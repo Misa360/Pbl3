@@ -405,6 +405,12 @@ else if (mode == "public" || mode == "home")
                     if (topSide.Count >= 2) break;
                 }
             }
+            var rightMain = topSide.FirstOrDefault();
+            var rightDuo  = latest.Where(x => x != topHero && !topSide.Contains(x)).Take(2).ToList();
+            var eventItem = featured.Skip(1).FirstOrDefault(x => x != topHero && !topSide.Contains(x))
+                          ?? latest.Skip(1).FirstOrDefault(x => x != topHero && !topSide.Contains(x) && !rightDuo.Contains(x));
+            var focusList = featured.Where(x => x != topHero).Concat(mostViewed).Concat(latest)
+                .GroupBy(x => x.Id).Select(g => g.First()).Take(12).ToList();
 
             <section class="bdn-top">
                 <aside class="bdn-top__side">
@@ -435,30 +441,93 @@ else if (mode == "public" || mode == "home")
                     </article>
                 }
 
+                @* Cột phải: 1 sidecard lớn + 2 cards nhỏ cạnh nhau + widget SỰ KIỆN BÌNH LUẬN (theo ảnh mẫu). *@
                 <aside class="bdn-top__right">
-                    @foreach (var s in topSide)
+                    @if (rightMain != null)
                     {
-                        <a class="bdn-sidecard" href="/Article/Details/@s.Id">
+                        <a class="bdn-sidecard" href="/Article/Details/@rightMain.Id">
                             <div class="bdn-sidecard__img">
-                                <img src="@(s.ImageUrl ?? "/images/default-article.jpg")" alt="@s.Title" />
+                                <img src="@(rightMain.ImageUrl ?? "/images/default-article.jpg")" alt="@rightMain.Title" />
                             </div>
-                            <h3 class="bdn-sidecard__title">@s.Title</h3>
+                            <h3 class="bdn-sidecard__title">@rightMain.Title</h3>
                         </a>
                     }
-                    @if (mostViewed.Any())
+                    @if (rightDuo.Any())
                     {
-                        <div class="bdn-sidecard bdn-sidecard--popular">
-                            <h4 class="bdn-sidecard__pop-head">🔥 Đọc nhiều nhất</h4>
-                            <ol class="bdn-sidecard__pop-list">
-                                @for (int i = 0; i < Math.Min(5, mostViewed.Count); i++)
+                        <div class="bdn-sidecard__duo">
+                            @foreach (var d in rightDuo)
+                            {
+                                <a class="bdn-sidecard bdn-sidecard--sm" href="/Article/Details/@d.Id">
+                                    <div class="bdn-sidecard__img">
+                                        <img src="@(d.ImageUrl ?? "/images/default-article.jpg")" alt="@d.Title" />
+                                    </div>
+                                    <h4 class="bdn-sidecard__title-sm">@d.Title</h4>
+                                </a>
+                            }
+                        </div>
+                    }
+                    @if (eventItem != null)
+                    {
+                        <div class="bdn-event">
+                            <header class="bdn-event__head">
+                                <span class="bdn-event__label">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    Sự kiện &amp; bình luận
+                                </span>
+                                <span class="bdn-event__nav"><button type="button" class="bdn-event__btn" aria-label="Trước">‹</button><button type="button" class="bdn-event__btn" aria-label="Sau">›</button></span>
+                            </header>
+                            <a class="bdn-event__body" href="/Article/Details/@eventItem.Id">
+                                <h4 class="bdn-event__title">@eventItem.Title</h4>
+                                @if (!string.IsNullOrEmpty(eventItem.Summary))
                                 {
-                                    <li><a href="/Article/Details/@mostViewed[i].Id">@mostViewed[i].Title</a></li>
+                                    <p class="bdn-event__sum">@eventItem.Summary</p>
                                 }
-                            </ol>
+                                <div class="bdn-event__meta">
+                                    <strong>@(eventItem.Author?.FullName ?? "BAN BIÊN TẬP")</strong>
+                                    <span>@(eventItem.CreatedAt?.ToString("dd/MM/yyyy HH:mm"))</span>
+                                </div>
+                            </a>
                         </div>
                     }
                 </aside>
             </section>
+
+            @* ═══ TIN TIÊU BIỂU — carousel tự cuộn (pause on hover) ═══ *@
+            @if (focusList.Any())
+            {
+                <section class="bdn-focus" aria-label="Tin tiêu biểu">
+                    <header class="bdn-focus__head">
+                        <h2 class="bdn-focus__title">Tiêu điểm</h2>
+                    </header>
+                    <div class="bdn-focus__viewport" id="bdnFocusViewport">
+                        <div class="bdn-focus__track" id="bdnFocusTrack">
+                            @foreach (var f in focusList)
+                            {
+                                <a class="bdn-focus__card" href="/Article/Details/@f.Id">
+                                    <div class="bdn-focus__img">
+                                        <img src="@(f.ImageUrl ?? "/images/default-article.jpg")" alt="@f.Title" loading="lazy" />
+                                    </div>
+                                    <div class="bdn-focus__overlay">
+                                        <h3 class="bdn-focus__card-title">@f.Title</h3>
+                                    </div>
+                                </a>
+                            }
+                            @* clone 1 lần để vòng lặp liền mạch *@
+                            @foreach (var f in focusList)
+                            {
+                                <a class="bdn-focus__card" href="/Article/Details/@f.Id" aria-hidden="true" tabindex="-1">
+                                    <div class="bdn-focus__img">
+                                        <img src="@(f.ImageUrl ?? "/images/default-article.jpg")" alt="" loading="lazy" />
+                                    </div>
+                                    <div class="bdn-focus__overlay">
+                                        <h3 class="bdn-focus__card-title">@f.Title</h3>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </section>
+            }
 
             @* Mỗi chuyên mục một block "header đỏ + 1 bài lớn bên trái + 4-6 bài nhỏ bên phải" *@
             @foreach (var c in categories)
@@ -655,6 +724,14 @@ else if (mode == "public" || mode == "home")
 @section Scripts {
     <script src="~/js/article.js"></script>
     <script>
+        // ── Tiêu điểm: pause carousel while hovering on viewport ──
+        (function(){
+            var vp = document.getElementById('bdnFocusViewport');
+            var tr = document.getElementById('bdnFocusTrack');
+            if (!vp || !tr) return;
+            vp.addEventListener('mouseenter', function(){ tr.classList.add('is-paused'); });
+            vp.addEventListener('mouseleave', function(){ tr.classList.remove('is-paused'); });
+        })();
         // ── Category page: ĐỌC NHIỀU / TIN MỚI tab toggle ──
         (function(){
             var tabs = document.querySelectorAll('.bdn-cat__tab');
