@@ -8,25 +8,46 @@
 
     @await Html.PartialAsync("_ArticleSubNav")
 
-    <div class="article-container" style="padding-top: 24px; padding-bottom: 48px;">
-        <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="font-family: var(--art-serif); font-size: 28px; color: var(--art-accent);">📖 SafeWiki — Cẩm nang An toàn</h1>
-            <p style="color: var(--art-text-muted); font-size: 15px;">Lật từng trang để tìm hiểu các kiến thức an toàn quan trọng tại Đà Nẵng</p>
+    <div class="article-container safewiki-container">
+        <div class="safewiki-header">
+            <span class="safewiki-eyebrow">Cẩm nang an toàn</span>
+            <h1>📖 SafeWiki — Cẩm nang An toàn</h1>
+            <p>Lật từng trang để tìm hiểu các kiến thức an toàn quan trọng tại Đà Nẵng</p>
+            <div class="safewiki-hint">
+                <span>💡 Nhấp vào góc sách hoặc kéo thanh trượt bên dưới để chuyển trang</span>
+            </div>
         </div>
 
-        <!-- FLIPBOOK CONTAINER -->
-        <div id="canvas" style="visibility: hidden;">
-            <div id="book-zoom">
-                <div class="sample-docs"></div>
-                <div class="hard"></div>
-                <div class="hard"></div>
-                <div class="hard p11"></div>
-                <div class="hard p12"></div>
+        <!-- FLIPBOOK STAGE -->
+        <div class="safewiki-stage">
+            <button type="button" class="safewiki-nav safewiki-nav--prev" aria-label="Trang trước" onclick="$('.sample-docs').turn('previous');">‹</button>
+
+            <div id="canvas" style="visibility: hidden;">
+                <div id="book-zoom">
+                    <div class="sample-docs"></div>
+                    <div class="hard"></div>
+                    <div class="hard"></div>
+                    <div class="hard p11"></div>
+                    <div class="hard p12"></div>
+                </div>
             </div>
+
+            <button type="button" class="safewiki-nav safewiki-nav--next" aria-label="Trang sau" onclick="$('.sample-docs').turn('next');">›</button>
         </div>
 
         <div id="slider-bar" class="turnjs-slider">
             <div id="slider"></div>
+        </div>
+
+        <div class="safewiki-footnote">
+            <div>
+                <strong>Về SafeWiki</strong>
+                <p>SafeWiki là tuyển tập các kiến thức an toàn được biên soạn dành riêng cho người dân và du khách tại Đà Nẵng. Tài liệu được cập nhật thường xuyên bởi đội ngũ biên tập DaNang SafeMap.</p>
+            </div>
+            <div class="safewiki-footnote-links">
+                <a href="/Article/Hotline">📞 Các số hotline khẩn cấp</a>
+                <a href="/Article">📰 Quay lại trang tin tức</a>
+            </div>
         </div>
     </div>
 </div>
@@ -50,11 +71,89 @@
     <script src="~/files/js/docs.js"></script>
 
     <style>
-        /* Override flipbook styles to integrate with page layout */
+        /* ── Override docs.css rules that break the page layout ─────────────
+           docs.css sets `body { overflow:hidden }` and `#canvas { margin:100px auto }`.
+           Those rules hide the bottom of the page (slider, footnote) because the
+           body can't scroll. Restore normal scroll + strip the rogue margin. */
+        html, body { overflow: auto !important; height: auto !important; }
+
+        .safewiki-container {
+            padding-top: 28px;
+            padding-bottom: 64px;
+        }
+        .safewiki-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .safewiki-eyebrow {
+            display: inline-block;
+            background: var(--art-accent, #2D6A4F);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 4px 14px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+        }
+        .safewiki-header h1 {
+            font-family: var(--art-serif, Georgia, serif);
+            font-size: 32px;
+            color: var(--art-accent, #2D6A4F);
+            margin: 0 0 8px;
+            line-height: 1.25;
+        }
+        .safewiki-header p {
+            color: var(--art-text-muted, #888);
+            font-size: 15px;
+            margin: 0;
+        }
+        .safewiki-hint {
+            margin-top: 14px;
+            display: inline-block;
+            background: #fff8e1;
+            border: 1px solid #ffe08a;
+            color: #8b6508;
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 20px;
+        }
+
+        /* Stage holds canvas centered with side nav buttons */
+        .safewiki-stage {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .safewiki-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: var(--art-accent, #2D6A4F);
+            color: #fff;
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+            z-index: 5;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        .safewiki-nav:hover { background: var(--art-accent-dark, #1B4332); transform: translateY(-50%) scale(1.05); }
+        .safewiki-nav--prev { left: 8px; }
+        .safewiki-nav--next { right: 8px; }
+
+        /* Core flipbook sizing — override docs.css `margin: 100px auto` */
         #canvas {
             width: 960px;
             height: 620px;
-            margin: 0 auto 20px;
+            margin: 0 auto !important;
         }
         .sample-docs {
             margin-top: 20px;
@@ -90,33 +189,93 @@
             background-image:url('/files/pics/loader.gif');
             width:22px; height:22px; position:absolute; top:280px; left:219px;
         }
+
         .turnjs-slider {
-            width: 500px;
+            width: min(560px, 90%);
             margin: 0 auto;
-            padding: 10px 0;
+            padding: 12px 16px;
+            background: #fff;
+            border: 1px solid var(--art-border, #e0e0e0);
+            border-radius: 999px;
+            box-shadow: var(--art-shadow, 0 2px 8px rgba(0,0,0,0.08));
         }
-        #slider {
-            margin: 0 auto;
-        }
+        #slider { margin: 0 auto; }
         .ui-slider {
-            background: #ddd;
+            background: #e6e6e6;
             border-radius: 4px;
             height: 6px;
             position: relative;
         }
         .ui-slider-handle {
             background: var(--art-accent, #2D6A4F);
+            border: 2px solid #fff;
             border-radius: 50%;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             position: absolute;
-            top: -6px;
+            top: -8px;
             cursor: pointer;
             outline: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
-        /* Responsive */
-        @@media (max-width: 1000px) {
-            #canvas { width: 100%; overflow-x: auto; }
+
+        .safewiki-footnote {
+            margin-top: 36px;
+            background: #fff;
+            border: 1px solid var(--art-border, #e0e0e0);
+            border-radius: 10px;
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+        .safewiki-footnote strong {
+            display: block;
+            font-family: var(--art-serif, Georgia, serif);
+            font-size: 18px;
+            color: var(--art-accent, #2D6A4F);
+            margin-bottom: 6px;
+        }
+        .safewiki-footnote p {
+            margin: 0;
+            color: var(--art-text-secondary, #555);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .safewiki-footnote-links { display: flex; flex-direction: column; gap: 10px; }
+        .safewiki-footnote-links a {
+            display: inline-block;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: var(--art-bg, #f5f5f0);
+            color: var(--art-accent-dark, #1B4332);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid var(--art-border, #e0e0e0);
+            transition: background 0.15s;
+        }
+        .safewiki-footnote-links a:hover { background: #eef3ef; }
+
+        /* Responsive — scale the book down instead of overflowing */
+        @@media (max-width: 1024px) {
+            #canvas {
+                width: 100%;
+                max-width: 720px;
+                height: auto;
+                aspect-ratio: 960 / 620;
+                transform-origin: top center;
+            }
+            .safewiki-nav { width: 38px; height: 38px; font-size: 20px; }
+        }
+        @@media (max-width: 720px) {
+            .safewiki-header h1 { font-size: 24px; }
+            .safewiki-nav--prev { left: 2px; }
+            .safewiki-nav--next { right: 2px; }
+            .safewiki-footnote {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 

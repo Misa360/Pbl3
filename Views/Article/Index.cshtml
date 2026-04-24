@@ -284,32 +284,92 @@ else if (mode == "my")
 else
 {
     // ══════════════════════════════════════════════
-    // GIAO DIỆN PUBLIC (Home & Category)
+    // GIAO DIỆN PUBLIC (Home & Category) — Kiểu báo giấy
     // ══════════════════════════════════════════════
+    var pageTitle = currentCat == "an-ninh"
+        ? "AN NINH – TRẬT TỰ"
+        : (currentCat == "doi-song" ? "ĐỜI SỐNG ĐÔ THỊ" : "TỔNG HỢP TIN TỨC");
+    var pageSubtitle = currentCat == "an-ninh"
+        ? "Cập nhật tình hình an ninh, phòng chống tội phạm tại Đà Nẵng"
+        : (currentCat == "doi-song"
+            ? "Nhịp sống đô thị Đà Nẵng mỗi ngày"
+            : "Cổng tin tức an toàn thành phố Đà Nẵng");
+    var tickerItems = latest.Take(6).Concat(featured.Skip(1)).Take(8).ToList();
+    var gridArticles = latest.Skip(sideArticles.Count == 0 ? 0 : 0).ToList();
+    var leadList = latest.Take(6).ToList();
+    var restList = latest.Skip(leadList.Count).ToList();
+
     <div class="article-page-wrapper">
         <!-- SUB NAVIGATION -->
         @await Html.PartialAsync("_ArticleSubNav")
 
+        <!-- ═════════ NEWSPAPER MASTHEAD ═════════ -->
+        <header class="art-masthead">
+            <div class="art-masthead__inner">
+                <div class="art-masthead__edition">
+                    <span class="art-masthead__edition-label">Ấn phẩm số</span>
+                    <span class="art-masthead__edition-num">#@(DateTime.Now.ToString("yyyyMMdd"))</span>
+                </div>
+                <div class="art-masthead__title">
+                    <div class="art-masthead__kicker">DANANG SAFEMAP · BÁO AN TOÀN</div>
+                    <h1>@pageTitle</h1>
+                    <div class="art-masthead__rule"><span></span><em>Tin cậy · Kịp thời · Cộng đồng</em><span></span></div>
+                    <p class="art-masthead__subtitle">@pageSubtitle</p>
+                </div>
+                <div class="art-masthead__meta">
+                    <span class="art-masthead__meta-date" id="mastheadDate"></span>
+                    <span class="art-masthead__meta-weather">🌤️ Đà Nẵng</span>
+                </div>
+            </div>
+        </header>
+
+        @if (tickerItems.Any())
+        {
+            <!-- ═════════ BREAKING NEWS TICKER ═════════ -->
+            <div class="art-ticker" role="region" aria-label="Tin nóng">
+                <div class="art-ticker__label">🔴 TIN NÓNG</div>
+                <div class="art-ticker__viewport">
+                    <div class="art-ticker__track">
+                        @foreach (var t in tickerItems)
+                        {
+                            <a class="art-ticker__item" href="/Article/Details/@t.Id">@t.Title</a>
+                            <span class="art-ticker__sep">•</span>
+                        }
+                        @foreach (var t in tickerItems)
+                        {
+                            <a class="art-ticker__item" href="/Article/Details/@t.Id">@t.Title</a>
+                            <span class="art-ticker__sep">•</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
         @if (currentCat == "an-ninh")
         {
-            <!-- SUB-CATEGORY TABS CHO AN NINH -->
-            <div class="an-ninh-tabs" style="border-bottom: 2px solid var(--art-primary); margin-bottom: 24px; padding: 0 5%; display: flex; align-items: flex-end;">
-                <div style="padding: 10px 15px; background: var(--art-primary); color: white; font-weight: bold; font-family: var(--art-serif); border-radius: 4px 4px 0 0; text-transform: uppercase;">AN NINH - TRẬT TỰ</div>
-                <ul style="list-style: none; padding: 0 0 10px 20px; margin: 0; display: flex; gap: 20px; overflow-x: auto; white-space: nowrap;">
-                    <li style="color: var(--art-primary); cursor: pointer; font-weight: 600;" class="active-tab">Tất cả</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">Phòng chống tội phạm không gian mạng</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">Cảnh giác</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">ATGT</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">Vụ việc</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">Vụ án</li>
-                </ul>
+            <div class="art-category-strip art-category-strip--security">
+                <div class="article-container">
+                    <strong>Chuyên mục An ninh</strong>
+                    <a href="#" class="active">Tất cả</a>
+                    <a href="#">Phòng chống tội phạm mạng</a>
+                    <a href="#">Cảnh giác</a>
+                    <a href="#">ATGT</a>
+                    <a href="#">Vụ việc</a>
+                    <a href="#">Vụ án</a>
+                </div>
             </div>
         }
         else if (currentCat == "doi-song")
         {
-            <!-- TIEU DE CHO ĐỜI SỐNG -->
-            <div class="an-ninh-tabs" style="border-bottom: 2px solid #2980b9; margin-bottom: 24px; padding: 0 5%;">
-                <h2 style="margin:0; padding: 10px 15px; display: inline-block; background: #2980b9; color: white; font-family: var(--art-serif); border-radius: 4px 4px 0 0; font-size: 16px;">ĐỜI SỐNG ĐÔ THỊ</h2>
+            <div class="art-category-strip art-category-strip--life">
+                <div class="article-container">
+                    <strong>Chuyên mục Đời sống</strong>
+                    <a href="#" class="active">Tất cả</a>
+                    <a href="#">Đô thị</a>
+                    <a href="#">Môi trường</a>
+                    <a href="#">Cộng đồng</a>
+                    <a href="#">Văn hoá</a>
+                </div>
             </div>
         }
 
@@ -317,27 +377,34 @@ else
             <!-- HERO BLOCK -->
             @if (mainArticle != null)
             {
-                <section class="art-hero">
+                <section class="art-hero art-hero--newspaper">
                     <div class="art-hero__main">
-                        <img src="@(mainArticle.ImageUrl ?? "/images/default-article.jpg")" alt="@mainArticle.Title" />
+                        <a class="art-hero__main-link" href="/Article/Details/@mainArticle.Id">
+                            <img src="@(mainArticle.ImageUrl ?? "/images/default-article.jpg")" alt="@mainArticle.Title" />
+                        </a>
                         <div class="art-hero__main-overlay">
                             <span class="art-hero__main-cat">@(mainArticle.Category?.Name ?? "Tin tức")</span>
-                            <h1 class="art-hero__main-title"><a href="/Article/Details/@mainArticle.Id">@mainArticle.Title</a></h1>
+                            <h2 class="art-hero__main-title"><a href="/Article/Details/@mainArticle.Id">@mainArticle.Title</a></h2>
                             <p class="art-hero__main-summary">@mainArticle.Summary</p>
+                            <div class="art-hero__main-meta">
+                                <span>📅 @mainArticle.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                                <span>👁️ @(mainArticle.ViewCount ?? 0) lượt xem</span>
+                            </div>
                         </div>
                     </div>
                     <div class="art-hero__side">
                         @foreach (var item in sideArticles)
                         {
-                            <div class="art-hero__side-item">
+                            <a class="art-hero__side-item" href="/Article/Details/@item.Id">
                                 <div class="art-hero__side-img">
                                     <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" />
                                 </div>
                                 <div class="art-hero__side-content">
-                                    <h3 class="art-hero__side-title"><a href="/Article/Details/@item.Id">@item.Title</a></h3>
-                                    <span class="art-hero__side-time">@item.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                                    <span class="art-hero__side-cat">@(item.Category?.Name ?? "Tin tức")</span>
+                                    <h3 class="art-hero__side-title">@item.Title</h3>
+                                    <span class="art-hero__side-time">📅 @item.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
                                 </div>
-                            </div>
+                            </a>
                         }
                     </div>
                 </section>
@@ -348,32 +415,60 @@ else
                 <div>
                     <div class="art-section-header">
                         <h2>📰 Tin mới nhất @(currentCat == "an-ninh" ? "- An ninh" : (currentCat == "doi-song" ? "- Đời sống" : "Tổng hợp"))</h2>
+                        <span class="art-section-header__count">@latest.Count bài</span>
                     </div>
-                    @if (latest.Any())
+
+                    @if (leadList.Any())
                     {
-                        @foreach (var item in latest)
+                        <div class="art-grid">
+                            @foreach (var item in leadList)
+                            {
+                                <a class="art-card" href="/Article/Details/@item.Id">
+                                    <div class="art-card__thumb">
+                                        <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" loading="lazy" />
+                                        @if (item.Category != null)
+                                        {
+                                            <span class="art-card__cat">@item.Category.Name</span>
+                                        }
+                                    </div>
+                                    <div class="art-card__body">
+                                        <h3 class="art-card__title">@item.Title</h3>
+                                        <p class="art-card__summary">@item.Summary</p>
+                                        <div class="art-card__meta">
+                                            <span>📅 @item.CreatedAt?.ToString("dd/MM/yyyy")</span>
+                                            <span>👁️ @(item.ViewCount ?? 0)</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    }
+
+                    @if (restList.Any())
+                    {
+                        <div class="art-section-divider"><span>Các tin khác</span></div>
+                        @foreach (var item in restList)
                         {
                             <div class="art-list-item">
                                 <div class="art-list-thumb">
                                     <a href="/Article/Details/@item.Id">
-                                        <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" />
+                                        <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" loading="lazy" />
                                     </a>
                                 </div>
                                 <div class="art-list-body">
                                     <h3 class="art-list-title"><a href="/Article/Details/@item.Id">@item.Title</a></h3>
                                     <p class="art-list-summary">@item.Summary</p>
                                     <div class="art-list-meta">
-                                        <span style="color: var(--art-primary); font-weight: bold;">@item.Category?.Name</span>
-                                        <span style="margin: 0 6px;">|</span>
+                                        <span class="art-list-meta__cat">@item.Category?.Name</span>
                                         <span>📅 @item.CreatedAt?.ToString("dd/MM/yyyy")</span>
-                                        <span style="margin: 0 6px;">|</span>
                                         <span>👁️ @(item.ViewCount ?? 0)</span>
                                     </div>
                                 </div>
                             </div>
                         }
                     }
-                    else
+
+                    @if (!latest.Any())
                     {
                         <div class="no-articles">
                             <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
@@ -396,6 +491,28 @@ else
                             </div>
                         }
                     </div>
+
+                    @if (categories.Any())
+                    {
+                        <div class="art-sidebar-box">
+                            <div class="art-sidebar-box__header">🗂️ Chuyên mục</div>
+                            <div class="art-sidebar-categories">
+                                <a href="/Article" class="@(string.IsNullOrEmpty(currentCat) ? "active" : "")">Tổng hợp</a>
+                                @foreach (var c in categories)
+                                {
+                                    <a href="/Article/Index?categorySlug=@c.Slug" class="@(currentCat == c.Slug ? "active" : "")">@c.Name</a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="art-sidebar-box art-sidebar-cta">
+                        <div class="art-sidebar-box__header">📣 Gửi tin đến toà soạn</div>
+                        <div class="art-sidebar-cta__body">
+                            <p>Bạn có thông tin muốn chia sẻ đến cộng đồng Đà Nẵng?</p>
+                            <a href="/Article/Create" class="art-btn art-btn-primary">✍️ Viết bài ngay</a>
+                        </div>
+                    </div>
                 </aside>
             </div>
         </div>
@@ -407,6 +524,17 @@ else
             </a>
         }
     </div>
+
+    <script>
+    (function(){
+        var el = document.getElementById('mastheadDate');
+        if(!el) return;
+        var d = new Date();
+        var days = ['Chủ Nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+        var months = ['tháng 1','tháng 2','tháng 3','tháng 4','tháng 5','tháng 6','tháng 7','tháng 8','tháng 9','tháng 10','tháng 11','tháng 12'];
+        el.textContent = days[d.getDay()] + ', ngày ' + d.getDate() + ' ' + months[d.getMonth()] + ' năm ' + d.getFullYear();
+    })();
+    </script>
 }
 
 @section Scripts {
