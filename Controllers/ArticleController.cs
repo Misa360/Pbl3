@@ -10,13 +10,11 @@ namespace DaNangSafeMap.Controllers
     {
         private readonly IArticleService _articleService;
         private readonly IWebHostEnvironment _env;
-        private readonly IServiceScopeFactory _scopeFactory;
 
-        public ArticleController(IArticleService articleService, IWebHostEnvironment env, IServiceScopeFactory scopeFactory)
+        public ArticleController(IArticleService articleService, IWebHostEnvironment env)
         {
             _articleService = articleService;
             _env = env;
-            _scopeFactory = scopeFactory;
         }
 
         // ══════════════════════════════════════════════
@@ -81,42 +79,21 @@ namespace DaNangSafeMap.Controllers
                 return View("Index", myArticles);
             }
 
-            // Public Mode (Home / Category) - Nạp dữ liệu SONG SONG để tối ưu tốc độ
-            var categoriesTask = Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var svc = scope.ServiceProvider.GetRequiredService<IArticleService>();
-                return await svc.GetCategoriesAsync();
-            });
-
-            var mostViewedTask = Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var svc = scope.ServiceProvider.GetRequiredService<IArticleService>();
-                return await svc.GetMostViewedArticlesAsync(10);
-            });
-
-            var featuredTask = Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var svc = scope.ServiceProvider.GetRequiredService<IArticleService>();
-                return await svc.GetFeaturedArticlesAsync(4, categorySlug);
-            });
-
-            var latestTask = Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var svc = scope.ServiceProvider.GetRequiredService<IArticleService>();
-                return await svc.GetLatestArticlesAsync(string.IsNullOrEmpty(categorySlug) ? 10 : 20, categorySlug);
-            });
-
-            // Chờ tất cả các task hoàn thành cùng lúc
-            await Task.WhenAll(categoriesTask, mostViewedTask, featuredTask, latestTask);
-
-            ViewBag.Categories = categoriesTask.Result;
-            ViewBag.MostViewed = mostViewedTask.Result;
-            ViewBag.Featured = featuredTask.Result;
-            ViewBag.Latest = latestTask.Result;
+            // Public Mode (Home / Category).
+            //
+            // NOTE: previously this used 4 × Task.Run with separate scopes so the
+            // queries ran "in parallel". On cold start that opened 4 simultaneous
+            // MySQL connections and made the page take ~10s. EF Core I/O is already
+            // async, so sequential await on ONE DbContext reuses a single pooled
+            // connection and is actually faster in practice. Responses are also
+            // cached in-memory inside ArticleService (see AddMemoryCache), so after
+            // the first hit subsequent loads skip the DB entirely until the TTL
+            // expires or a moderator action invalidates the cache.
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.Featured = await _articleService.GetFeaturedArticlesAsync(4, categorySlug);
+            ViewBag.Latest = await _articleService.GetLatestArticlesAsync(
+                string.IsNullOrEmpty(categorySlug) ? 10 : 20, categorySlug);
+            ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(10);
             
             if (string.IsNullOrEmpty(categorySlug)) 
             {

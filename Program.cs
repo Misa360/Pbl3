@@ -64,6 +64,10 @@ builder.Services.AddScoped<IAlertService, AlertService>();
 // ─── 3c. ARTICLE SERVICES (Tin tức) ─────────────────────────────────────────
 builder.Services.AddScoped<IArticleService, ArticleService>();
 
+// In-memory cache for hot article queries (featured/latest/most-viewed/categories)
+// Giảm tải DB trên trang Tin tức — TTL ngắn, tự invalidate khi duyệt / đăng bài.
+builder.Services.AddMemoryCache();
+
 // ─── 4. MVC + API ─────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
 

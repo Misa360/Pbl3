@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using DaNangSafeMap.Data;
 using DaNangSafeMap.Models.Entities;
 using DaNangSafeMap.Services.Interfaces;
@@ -8,10 +9,34 @@ namespace DaNangSafeMap.Services.Implementations
     public class ArticleService : IArticleService
     {
         private readonly ApplicationDbContext _db;
+        private readonly IMemoryCache _cache;
 
-        public ArticleService(ApplicationDbContext db)
+        // Cache TTLs — short enough that moderated content appears quickly,
+        // long enough that a popular news page stops hammering MySQL.
+        private static readonly TimeSpan LatestTtl       = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan FeaturedTtl     = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan MostViewedTtl   = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan CategoriesTtl   = TimeSpan.FromMinutes(10);
+
+        public ArticleService(ApplicationDbContext db, IMemoryCache cache)
         {
             _db = db;
+            _cache = cache;
+        }
+
+        // Invalidate every cached article list — called after create / approve / reject / toggle-featured / update / delete.
+        private void InvalidateArticleListCaches()
+        {
+            // Simple broad invalidation: remove all known cache keys.
+            // Keys are short and enumerable, so we can just drop them.
+            _cache.Remove("art:latest:-:10");
+            _cache.Remove("art:latest:an-ninh:20");
+            _cache.Remove("art:latest:doi-song:20");
+            _cache.Remove("art:featured:-:4");
+            _cache.Remove("art:featured:an-ninh:4");
+            _cache.Remove("art:featured:doi-song:4");
+            _cache.Remove("art:mostviewed:10");
+            _cache.Remove("art:categories");
         }
 
         // ══════════════════════════════════════════════
@@ -75,9 +100,13 @@ namespace DaNangSafeMap.Services.Implementations
 
         public async Task<List<Article>> GetLatestArticlesAsync(int count = 10, string? categorySlug = null)
         {
+            var key = $"art:latest:{(string.IsNullOrEmpty(categorySlug) ? "-" : categorySlug)}:{count}";
+            if (_cache.TryGetValue(key, out List<Article>? cached) && cached != null)
+            {
+                return cached;
+            }
+
             var query = _db.Articles.AsNoTracking()
-                .Include(a => a.Category)
-                .Include(a => a.Author)
                 .Where(a => a.Status == 2 && a.DeletedAt == null);
 
             if (!string.IsNullOrEmpty(categorySlug))
@@ -85,7 +114,7 @@ namespace DaNangSafeMap.Services.Implementations
                 query = query.Where(a => a.Category != null && a.Category.Slug == categorySlug);
             }
 
-            return await query
+            var list = await query
                 .OrderByDescending(a => a.CreatedAt)
                 .Take(count)
                 .Select(a => new Article
@@ -104,13 +133,20 @@ namespace DaNangSafeMap.Services.Implementations
                     Status = a.Status
                 })
                 .ToListAsync();
+
+            _cache.Set(key, list, LatestTtl);
+            return list;
         }
 
         public async Task<List<Article>> GetFeaturedArticlesAsync(int count = 4, string? categorySlug = null)
         {
+            var key = $"art:featured:{(string.IsNullOrEmpty(categorySlug) ? "-" : categorySlug)}:{count}";
+            if (_cache.TryGetValue(key, out List<Article>? cached) && cached != null)
+            {
+                return cached;
+            }
+
             var query = _db.Articles.AsNoTracking()
-                .Include(a => a.Category)
-                .Include(a => a.Author)
                 .Where(a => a.Status == 2 && a.DeletedAt == null && a.IsFeatured == true);
 
             if (!string.IsNullOrEmpty(categorySlug))
@@ -144,8 +180,6 @@ namespace DaNangSafeMap.Services.Implementations
             {
                 var existingIds = featured.Select(f => f.Id).ToList();
                 var more = await _db.Articles.AsNoTracking()
-                    .Include(a => a.Category)
-                    .Include(a => a.Author)
                     .Where(a => a.Status == 2 && a.DeletedAt == null && !existingIds.Contains(a.Id))
                     .Where(a => string.IsNullOrEmpty(categorySlug) || (a.Category != null && a.Category.Slug == categorySlug))
                     .OrderByDescending(a => a.CreatedAt)
@@ -170,14 +204,19 @@ namespace DaNangSafeMap.Services.Implementations
                 featured.AddRange(more);
             }
 
+            _cache.Set(key, featured, FeaturedTtl);
             return featured;
         }
 
         public async Task<List<Article>> GetMostViewedArticlesAsync(int count = 10)
         {
-            return await _db.Articles.AsNoTracking()
-                .Include(a => a.Category)
-                .Include(a => a.Author)
+            var key = $"art:mostviewed:{count}";
+            if (_cache.TryGetValue(key, out List<Article>? cached) && cached != null)
+            {
+                return cached;
+            }
+
+            var list = await _db.Articles.AsNoTracking()
                 .Where(a => a.Status == 2 && a.DeletedAt == null)
                 .OrderByDescending(a => a.ViewCount)
                 .Take(count)
@@ -197,6 +236,9 @@ namespace DaNangSafeMap.Services.Implementations
                     Status = a.Status
                 })
                 .ToListAsync();
+
+            _cache.Set(key, list, MostViewedTtl);
+            return list;
         }
 
         public async Task<List<Article>> GetRelatedArticlesAsync(int articleId, int count = 5)
@@ -239,6 +281,7 @@ namespace DaNangSafeMap.Services.Implementations
             article.Slug = GenerateSlug(article.Title);
             _db.Articles.Add(article);
             await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
             return article;
         }
 
@@ -264,6 +307,7 @@ namespace DaNangSafeMap.Services.Implementations
             }
 
             await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
             return article;
         }
 
@@ -273,6 +317,7 @@ namespace DaNangSafeMap.Services.Implementations
             if (article == null) return false;
             article.DeletedAt = DateTime.Now;
             await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
             return true;
         }
 
@@ -447,6 +492,7 @@ namespace DaNangSafeMap.Services.Implementations
             });
 
             await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
             return true;
         }
 
@@ -473,6 +519,7 @@ namespace DaNangSafeMap.Services.Implementations
             });
 
             await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
             return true;
         }
 
@@ -485,6 +532,7 @@ namespace DaNangSafeMap.Services.Implementations
             article.ModeratedBy = moderatorId;
             
             await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
             return true;
         }
 
@@ -494,7 +542,14 @@ namespace DaNangSafeMap.Services.Implementations
 
         public async Task<List<Category>> GetCategoriesAsync()
         {
-            return await _db.Categories.AsNoTracking().OrderBy(c => c.Id).ToListAsync();
+            const string key = "art:categories";
+            if (_cache.TryGetValue(key, out List<Category>? cached) && cached != null)
+            {
+                return cached;
+            }
+            var list = await _db.Categories.AsNoTracking().OrderBy(c => c.Id).ToListAsync();
+            _cache.Set(key, list, CategoriesTtl);
+            return list;
         }
 
         public async Task<Category?> GetCategoryBySlugAsync(string slug)
