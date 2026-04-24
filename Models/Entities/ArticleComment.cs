@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DaNangSafeMap.Models.Entities
 {
-    [Table("articlecomments")]
+    [Table("article_comments")]
     public class ArticleComment
     {
         [Key]
