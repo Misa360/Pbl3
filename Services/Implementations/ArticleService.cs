@@ -30,8 +30,13 @@ namespace DaNangSafeMap.Services.Implementations
             // Simple broad invalidation: remove all known cache keys.
             // Keys are short and enumerable, so we can just drop them.
             _cache.Remove("art:latest:-:10");
+            _cache.Remove("art:latest:-:12");
             _cache.Remove("art:latest:an-ninh:20");
+            _cache.Remove("art:latest:an-ninh:24");
+            _cache.Remove("art:latest:an-ninh:7");
             _cache.Remove("art:latest:doi-song:20");
+            _cache.Remove("art:latest:doi-song:24");
+            _cache.Remove("art:latest:doi-song:7");
             _cache.Remove("art:featured:-:4");
             _cache.Remove("art:featured:an-ninh:4");
             _cache.Remove("art:featured:doi-song:4");

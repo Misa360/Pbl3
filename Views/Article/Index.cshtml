@@ -281,213 +281,294 @@ else if (mode == "my")
         </div>
     </div>
 }
-else
+else if (mode == "public" || mode == "home")
 {
     // ══════════════════════════════════════════════
-    // GIAO DIỆN PUBLIC (Home & Category) — Kiểu báo giấy
+    // GIAO DIỆN PUBLIC — lấy cảm hứng từ baodanang.vn
+    //   • Trang chủ /Article                   → nav chuyên mục + top 3 cột + block riêng từng chuyên mục
+    //   • /Article?categorySlug=an-ninh/doi-song → nav + header đỏ + 1 big + grid nhỏ (fit màn hình)
     // ══════════════════════════════════════════════
-    var pageTitle = currentCat == "an-ninh"
-        ? "AN NINH – TRẬT TỰ"
-        : (currentCat == "doi-song" ? "ĐỜI SỐNG ĐÔ THỊ" : "TỔNG HỢP TIN TỨC");
-    var pageSubtitle = currentCat == "an-ninh"
-        ? "Cập nhật tình hình an ninh, phòng chống tội phạm tại Đà Nẵng"
-        : (currentCat == "doi-song"
-            ? "Nhịp sống đô thị Đà Nẵng mỗi ngày"
-            : "Cổng tin tức an toàn thành phố Đà Nẵng");
-    var tickerItems = latest.Take(6).Concat(featured.Skip(1)).Take(8).ToList();
-    var gridArticles = latest.Skip(sideArticles.Count == 0 ? 0 : 0).ToList();
-    var leadList = latest.Take(6).ToList();
-    var restList = latest.Skip(leadList.Count).ToList();
+    var latestByCat = ViewBag.LatestByCat as Dictionary<string, List<DaNangSafeMap.Models.Entities.Article>>
+                      ?? new Dictionary<string, List<DaNangSafeMap.Models.Entities.Article>>();
+    var isHome = string.IsNullOrEmpty(currentCat);
 
-    <div class="article-page-wrapper">
-        <!-- SUB NAVIGATION -->
+    // Tin nóng ticker (global/category)
+    var tickerItems = latest.Take(6).Concat(featured.Skip(1)).Take(8).ToList();
+
+    // Helper: "x giờ trước" theo tiếng Việt
+    Func<DateTime?, string> humanTime = (dt) =>
+    {
+        if (dt == null) return "";
+        var diff = DateTime.Now - dt.Value;
+        if (diff.TotalMinutes < 1) return "vừa xong";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} phút trước";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} giờ trước";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} ngày trước";
+        return dt.Value.ToString("dd/MM/yyyy");
+    };
+
+    // Giả sub-cats cho block trang chủ (hiển thị decorative, click về chuyên mục gốc)
+    var subCatsMap = new Dictionary<string, string[]>
+    {
+        ["an-ninh"]  = new[] { "Tin mới", "Cảnh báo", "ATGT", "Vụ việc", "Phòng chống" },
+        ["doi-song"] = new[] { "Đô thị", "Môi trường", "Cộng đồng", "Văn hoá" }
+    };
+
+    <link rel="stylesheet" href="~/css/article-news.css" />
+
+    <div class="bdn-page">
         @await Html.PartialAsync("_ArticleSubNav")
 
-        <!-- ═════════ NEWSPAPER MASTHEAD ═════════ -->
-        <header class="art-masthead">
-            <div class="art-masthead__inner">
-                <div class="art-masthead__edition">
-                    <span class="art-masthead__edition-label">Ấn phẩm số</span>
-                    <span class="art-masthead__edition-num">#@(DateTime.Now.ToString("yyyyMMdd"))</span>
-                </div>
-                <div class="art-masthead__title">
-                    <div class="art-masthead__kicker">DANANG SAFEMAP · BÁO AN TOÀN</div>
-                    <h1>@pageTitle</h1>
-                    <div class="art-masthead__rule"><span></span><em>Tin cậy · Kịp thời · Cộng đồng</em><span></span></div>
-                    <p class="art-masthead__subtitle">@pageSubtitle</p>
-                </div>
-                <div class="art-masthead__meta">
-                    <span class="art-masthead__meta-date" id="mastheadDate"></span>
-                    <span class="art-masthead__meta-weather">🌤️ Đà Nẵng</span>
-                </div>
+        @* Thanh chuyên mục đỏ đỏ kiểu baodanang — luôn hiển thị *@
+        <nav class="bdn-catnav" aria-label="Chuyên mục">
+            <div class="bdn-catnav__inner">
+                <a class="bdn-catnav__home @(isHome ? "is-active" : "")" href="/Article" aria-label="Trang chủ tin tức">🏠</a>
+                @foreach (var c in categories)
+                {
+                    <a class="bdn-catnav__item @(currentCat == c.Slug ? "is-active" : "")"
+                       href="/Article?categorySlug=@c.Slug">@c.Name</a>
+                }
+                <a class="bdn-catnav__item" href="/Article/SafeWiki">SafeWiki</a>
+                <a class="bdn-catnav__item" href="/Article/Hotline">Hotline</a>
             </div>
-        </header>
+        </nav>
 
         @if (tickerItems.Any())
         {
-            <!-- ═════════ BREAKING NEWS TICKER ═════════ -->
-            <div class="art-ticker" role="region" aria-label="Tin nóng">
-                <div class="art-ticker__label">🔴 TIN NÓNG</div>
-                <div class="art-ticker__viewport">
-                    <div class="art-ticker__track">
+            <div class="bdn-ticker" role="region" aria-label="Tin nóng">
+                <div class="bdn-ticker__label">🔴 TIN NÓNG</div>
+                <div class="bdn-ticker__viewport">
+                    <div class="bdn-ticker__track">
                         @foreach (var t in tickerItems)
                         {
-                            <a class="art-ticker__item" href="/Article/Details/@t.Id">@t.Title</a>
-                            <span class="art-ticker__sep">•</span>
+                            <a class="bdn-ticker__item" href="/Article/Details/@t.Id">@t.Title</a>
+                            <span class="bdn-ticker__sep">•</span>
                         }
                         @foreach (var t in tickerItems)
                         {
-                            <a class="art-ticker__item" href="/Article/Details/@t.Id">@t.Title</a>
-                            <span class="art-ticker__sep">•</span>
+                            <a class="bdn-ticker__item" href="/Article/Details/@t.Id">@t.Title</a>
+                            <span class="bdn-ticker__sep">•</span>
                         }
                     </div>
                 </div>
             </div>
         }
 
-        <div class="article-container">
-            <!-- HERO BLOCK -->
-            @if (mainArticle != null)
+        <div class="bdn-container">
+
+        @if (isHome)
+        {
+            // ══ TRANG CHỦ /Article ══
+            var topHero = featured.FirstOrDefault() ?? latest.FirstOrDefault();
+            var shortList = latest.Where(x => x != topHero).Take(5).ToList();
+            var topSide = featured.Where(x => x != topHero).Take(2).ToList();
+            if (topSide.Count < 2)
             {
-                <section class="art-hero art-hero--newspaper">
-                    <div class="art-hero__main">
-                        <a class="art-hero__main-link" href="/Article/Details/@mainArticle.Id">
-                            <img src="@(mainArticle.ImageUrl ?? "/images/default-article.jpg")" alt="@mainArticle.Title" />
-                        </a>
-                        <div class="art-hero__main-overlay">
-                            <span class="art-hero__main-cat">@(mainArticle.Category?.Name ?? "Tin tức")</span>
-                            <h2 class="art-hero__main-title"><a href="/Article/Details/@mainArticle.Id">@mainArticle.Title</a></h2>
-                            <p class="art-hero__main-summary">@mainArticle.Summary</p>
-                            <div class="art-hero__main-meta">
-                                <span>📅 @mainArticle.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
-                                <span>👁️ @(mainArticle.ViewCount ?? 0) lượt xem</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="art-hero__side">
-                        @foreach (var item in sideArticles)
-                        {
-                            <a class="art-hero__side-item" href="/Article/Details/@item.Id">
-                                <div class="art-hero__side-img">
-                                    <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" />
-                                </div>
-                                <div class="art-hero__side-content">
-                                    <span class="art-hero__side-cat">@(item.Category?.Name ?? "Tin tức")</span>
-                                    <h3 class="art-hero__side-title">@item.Title</h3>
-                                    <span class="art-hero__side-time">📅 @item.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
-                                </div>
-                            </a>
-                        }
-                    </div>
-                </section>
+                foreach (var a in latest.Where(x => x != topHero && !topSide.Contains(x)))
+                {
+                    topSide.Add(a);
+                    if (topSide.Count >= 2) break;
+                }
             }
 
-            <!-- MỚI NHẤT + SIDEBAR -->
-            <div class="art-layout">
-                <div>
-                    <div class="art-section-header">
-                        <h2>📰 Tin mới nhất @(currentCat == "an-ninh" ? "- An ninh" : (currentCat == "doi-song" ? "- Đời sống" : "Tổng hợp"))</h2>
-                        <span class="art-section-header__count">@latest.Count bài</span>
-                    </div>
-
-                    @if (leadList.Any())
+            <section class="bdn-top">
+                <aside class="bdn-top__side">
+                    @foreach (var it in shortList)
                     {
-                        <div class="art-grid">
-                            @foreach (var item in leadList)
+                        <a class="bdn-brief" href="/Article/Details/@it.Id">
+                            <span class="bdn-brief__time">@humanTime(it.CreatedAt)</span>
+                            <h3 class="bdn-brief__title">@it.Title</h3>
+                        </a>
+                    }
+                </aside>
+
+                @if (topHero != null)
+                {
+                    <article class="bdn-top__hero">
+                        <a href="/Article/Details/@topHero.Id" class="bdn-top__hero-img">
+                            <img src="@(topHero.ImageUrl ?? "/images/default-article.jpg")" alt="@topHero.Title" />
+                        </a>
+                        <h2 class="bdn-top__hero-title">
+                            <a href="/Article/Details/@topHero.Id">@topHero.Title</a>
+                        </h2>
+                        @if (!string.IsNullOrEmpty(topHero.Summary))
+                        {
+                            <p class="bdn-top__hero-lead">
+                                <span class="bdn-lead-dno">ĐNO</span> — @topHero.Summary
+                            </p>
+                        }
+                    </article>
+                }
+
+                <aside class="bdn-top__right">
+                    @foreach (var s in topSide)
+                    {
+                        <a class="bdn-sidecard" href="/Article/Details/@s.Id">
+                            <div class="bdn-sidecard__img">
+                                <img src="@(s.ImageUrl ?? "/images/default-article.jpg")" alt="@s.Title" />
+                            </div>
+                            <h3 class="bdn-sidecard__title">@s.Title</h3>
+                        </a>
+                    }
+                    @if (mostViewed.Any())
+                    {
+                        <div class="bdn-sidecard bdn-sidecard--popular">
+                            <h4 class="bdn-sidecard__pop-head">🔥 Đọc nhiều nhất</h4>
+                            <ol class="bdn-sidecard__pop-list">
+                                @for (int i = 0; i < Math.Min(5, mostViewed.Count); i++)
+                                {
+                                    <li><a href="/Article/Details/@mostViewed[i].Id">@mostViewed[i].Title</a></li>
+                                }
+                            </ol>
+                        </div>
+                    }
+                </aside>
+            </section>
+
+            @* Mỗi chuyên mục một block "header đỏ + 1 bài lớn bên trái + 4-6 bài nhỏ bên phải" *@
+            @foreach (var c in categories)
+            {
+                if (string.IsNullOrEmpty(c.Slug)) continue;
+                var items = latestByCat.GetValueOrDefault(c.Slug) ?? new List<DaNangSafeMap.Models.Entities.Article>();
+                if (!items.Any()) continue;
+                var big = items.First();
+                var rest = items.Skip(1).Take(6).ToList();
+                var subCats = subCatsMap.ContainsKey(c.Slug) ? subCatsMap[c.Slug] : Array.Empty<string>();
+
+                <section class="bdn-block">
+                    <header class="bdn-block__head">
+                        <h2 class="bdn-block__title">
+                            <span class="bdn-block__rule"></span>
+                            <a href="/Article?categorySlug=@c.Slug">@c.Name.ToUpper()</a>
+                            <span class="bdn-block__rule"></span>
+                        </h2>
+                        @if (subCats.Any())
+                        {
+                            <div class="bdn-block__subs">
+                                @for (int i = 0; i < subCats.Length; i++)
+                                {
+                                    <a href="/Article?categorySlug=@c.Slug">@subCats[i]</a>
+                                    if (i < subCats.Length - 1)
+                                    {
+                                        <span class="bdn-block__sub-sep">|</span>
+                                    }
+                                }
+                            </div>
+                        }
+                    </header>
+
+                    <div class="bdn-block__grid">
+                        <a class="bdn-big" href="/Article/Details/@big.Id">
+                            <div class="bdn-big__img">
+                                <img src="@(big.ImageUrl ?? "/images/default-article.jpg")" alt="@big.Title" />
+                            </div>
+                            <h3 class="bdn-big__title">@big.Title</h3>
+                            @if (!string.IsNullOrEmpty(big.Summary))
                             {
-                                <a class="art-card" href="/Article/Details/@item.Id">
-                                    <div class="art-card__thumb">
-                                        <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" loading="lazy" />
-                                        @if (item.Category != null)
-                                        {
-                                            <span class="art-card__cat">@item.Category.Name</span>
-                                        }
-                                    </div>
-                                    <div class="art-card__body">
-                                        <h3 class="art-card__title">@item.Title</h3>
-                                        <p class="art-card__summary">@item.Summary</p>
-                                        <div class="art-card__meta">
-                                            <span>📅 @item.CreatedAt?.ToString("dd/MM/yyyy")</span>
-                                            <span>👁️ @(item.ViewCount ?? 0)</span>
-                                        </div>
+                                <p class="bdn-big__lead"><span class="bdn-lead-dno">ĐNO</span> — @big.Summary</p>
+                            }
+                        </a>
+
+                        <div class="bdn-minis">
+                            @foreach (var it in rest)
+                            {
+                                <a class="bdn-mini" href="/Article/Details/@it.Id">
+                                    <h4 class="bdn-mini__title">@it.Title</h4>
+                                    <div class="bdn-mini__img">
+                                        <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
                                     </div>
                                 </a>
                             }
                         </div>
-                    }
-
-                    @if (restList.Any())
-                    {
-                        <div class="art-section-divider"><span>Các tin khác</span></div>
-                        @foreach (var item in restList)
-                        {
-                            <div class="art-list-item">
-                                <div class="art-list-thumb">
-                                    <a href="/Article/Details/@item.Id">
-                                        <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" loading="lazy" />
-                                    </a>
-                                </div>
-                                <div class="art-list-body">
-                                    <h3 class="art-list-title"><a href="/Article/Details/@item.Id">@item.Title</a></h3>
-                                    <p class="art-list-summary">@item.Summary</p>
-                                    <div class="art-list-meta">
-                                        <span class="art-list-meta__cat">@item.Category?.Name</span>
-                                        <span>📅 @item.CreatedAt?.ToString("dd/MM/yyyy")</span>
-                                        <span>👁️ @(item.ViewCount ?? 0)</span>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    }
-
-                    @if (!latest.Any())
-                    {
-                        <div class="no-articles">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                            <p>Không có bài viết nào trong mục này</p>
-                        </div>
-                    }
-                </div>
-
-                <!-- SIDEBAR -->
-                <aside class="art-sidebar">
-                    <div class="art-sidebar-box">
-                        <div class="art-sidebar-box__header">🔥 Đọc nhiều nhất</div>
-                        @for (int i = 0; i < mostViewed.Count && i < 10; i++)
-                        {
-                            <div class="art-sidebar-item">
-                                <span class="art-sidebar-num">@(i + 1)</span>
-                                <div class="art-sidebar-title">
-                                    <a href="/Article/Details/@mostViewed[i].Id">@mostViewed[i].Title</a>
-                                </div>
-                            </div>
-                        }
                     </div>
+                </section>
+            }
+        }
+        else
+        {
+            // ══ TRANG CHUYÊN MỤC /Article?categorySlug=... ══
+            //   Format giống baodanang.vn/van-hoa-van-nghe — fit viewport, không cần scroll ngang.
+            var catObj = categories.FirstOrDefault(x => x.Slug == currentCat);
+            var catName = catObj?.Name ?? currentCat;
+            var bigCat = latest.FirstOrDefault();
+            var restCat = latest.Skip(1).Take(12).ToList();
+            var subCatsCat = subCatsMap.ContainsKey(currentCat ?? "") ? subCatsMap[currentCat!] : Array.Empty<string>();
 
-                    @if (categories.Any())
+            <section class="bdn-block bdn-block--page">
+                <header class="bdn-block__head">
+                    <h1 class="bdn-block__title">
+                        <span class="bdn-block__rule"></span>
+                        @(catName?.ToUpper())
+                        <span class="bdn-block__rule"></span>
+                    </h1>
+                    @if (subCatsCat.Any())
                     {
-                        <div class="art-sidebar-box">
-                            <div class="art-sidebar-box__header">🗂️ Chuyên mục</div>
-                            <div class="art-sidebar-categories">
-                                <a href="/Article" class="@(string.IsNullOrEmpty(currentCat) ? "active" : "")">Tổng hợp</a>
-                                @foreach (var c in categories)
+                        <div class="bdn-block__subs">
+                            @for (int i = 0; i < subCatsCat.Length; i++)
+                            {
+                                <a href="/Article?categorySlug=@currentCat">@subCatsCat[i]</a>
+                                if (i < subCatsCat.Length - 1)
                                 {
-                                    <a href="/Article/Index?categorySlug=@c.Slug" class="@(currentCat == c.Slug ? "active" : "")">@c.Name</a>
+                                    <span class="bdn-block__sub-sep">|</span>
                                 }
-                            </div>
+                            }
                         </div>
                     }
+                </header>
 
-                    <div class="art-sidebar-box art-sidebar-cta">
-                        <div class="art-sidebar-box__header">📣 Gửi tin đến toà soạn</div>
-                        <div class="art-sidebar-cta__body">
-                            <p>Bạn có thông tin muốn chia sẻ đến cộng đồng Đà Nẵng?</p>
-                            <a href="/Article/Create" class="art-btn art-btn-primary">✍️ Viết bài ngay</a>
+                @if (bigCat != null)
+                {
+                    <div class="bdn-block__grid">
+                        <a class="bdn-big" href="/Article/Details/@bigCat.Id">
+                            <div class="bdn-big__img">
+                                <img src="@(bigCat.ImageUrl ?? "/images/default-article.jpg")" alt="@bigCat.Title" />
+                            </div>
+                            <h3 class="bdn-big__title">@bigCat.Title</h3>
+                            @if (!string.IsNullOrEmpty(bigCat.Summary))
+                            {
+                                <p class="bdn-big__lead"><span class="bdn-lead-dno">ĐNO</span> — @bigCat.Summary</p>
+                            }
+                        </a>
+
+                        <div class="bdn-minis bdn-minis--page">
+                            @foreach (var it in restCat.Take(6))
+                            {
+                                <a class="bdn-mini" href="/Article/Details/@it.Id">
+                                    <h4 class="bdn-mini__title">@it.Title</h4>
+                                    <div class="bdn-mini__img">
+                                        <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                                    </div>
+                                </a>
+                            }
                         </div>
                     </div>
-                </aside>
-            </div>
-        </div>
+                }
+
+                @if (restCat.Count > 6)
+                {
+                    <div class="bdn-block__extra">
+                        @foreach (var it in restCat.Skip(6))
+                        {
+                            <a class="bdn-mini bdn-mini--wide" href="/Article/Details/@it.Id">
+                                <h4 class="bdn-mini__title">@it.Title</h4>
+                                <div class="bdn-mini__img">
+                                    <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+
+                @if (!latest.Any())
+                {
+                    <div class="bdn-empty">
+                        <p>Chưa có bài viết nào trong chuyên mục này.</p>
+                    </div>
+                }
+            </section>
+        }
+
+        </div>@* /bdn-container *@
 
         @if (userId != null && role != "Admin")
         {
@@ -497,16 +578,6 @@ else
         }
     </div>
 
-    <script>
-    (function(){
-        var el = document.getElementById('mastheadDate');
-        if(!el) return;
-        var d = new Date();
-        var days = ['Chủ Nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
-        var months = ['tháng 1','tháng 2','tháng 3','tháng 4','tháng 5','tháng 6','tháng 7','tháng 8','tháng 9','tháng 10','tháng 11','tháng 12'];
-        el.textContent = days[d.getDay()] + ', ngày ' + d.getDate() + ' ' + months[d.getMonth()] + ' năm ' + d.getFullYear();
-    })();
-    </script>
 }
 
 @section Scripts {

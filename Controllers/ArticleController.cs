@@ -92,12 +92,23 @@ namespace DaNangSafeMap.Controllers
             ViewBag.Categories = await _articleService.GetCategoriesAsync();
             ViewBag.Featured = await _articleService.GetFeaturedArticlesAsync(4, categorySlug);
             ViewBag.Latest = await _articleService.GetLatestArticlesAsync(
-                string.IsNullOrEmpty(categorySlug) ? 10 : 20, categorySlug);
+                string.IsNullOrEmpty(categorySlug) ? 12 : 24, categorySlug);
             ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(10);
-            
-            if (string.IsNullOrEmpty(categorySlug)) 
+
+            if (string.IsNullOrEmpty(categorySlug))
             {
                 ViewBag.Mode = "home";
+
+                // Build per-category latest lists for the home page's section blocks
+                // (kiểu báo Đà Nẵng: mỗi chuyên mục một block "header đỏ + 1 bài lớn + 6 bài nhỏ").
+                var byCat = new Dictionary<string, List<Article>>();
+                var cats = ViewBag.Categories as List<Category> ?? new();
+                foreach (var c in cats)
+                {
+                    if (string.IsNullOrEmpty(c.Slug)) continue;
+                    byCat[c.Slug] = await _articleService.GetLatestArticlesAsync(7, c.Slug);
+                }
+                ViewBag.LatestByCat = byCat;
             }
 
             return View("Index", new List<Article>());

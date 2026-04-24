@@ -68,6 +68,10 @@ builder.Services.AddScoped<IArticleService, ArticleService>();
 // Giảm tải DB trên trang Tin tức — TTL ngắn, tự invalidate khi duyệt / đăng bài.
 builder.Services.AddMemoryCache();
 
+// Pre-warm the article cache on app startup so the first visitor to /Article
+// doesn't wait for the cold DB round-trip.
+builder.Services.AddHostedService<DaNangSafeMap.Services.Implementations.ArticleCacheWarmer>();
+
 // ─── 4. MVC + API ─────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
 
