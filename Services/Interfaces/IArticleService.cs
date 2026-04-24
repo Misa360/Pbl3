@@ -17,6 +17,9 @@ namespace DaNangSafeMap.Services.Interfaces
         Task<bool> DeleteArticleAsync(int id, int userId);
         Task IncrementViewCountAsync(int id, string? ipAddress, int? userId);
 
+        // ── Search ──
+        Task<List<Article>> SearchArticlesAsync(string keyword, int take = 30);
+
         // ── User's articles ──
         Task<List<Article>> GetUserArticlesAsync(int userId);
 

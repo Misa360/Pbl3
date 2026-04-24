@@ -52,7 +52,7 @@ namespace DaNangSafeMap.Controllers
         // DANH SÁCH BÀI VIẾT TỔNG HỢP (Home, Category, Admin, Personal)
         // ══════════════════════════════════════════════
         [HttpGet]
-        public async Task<IActionResult> Index(string? categorySlug = null, string? mode = null, int page = 1)
+        public async Task<IActionResult> Index(string? categorySlug = null, string? mode = null, int page = 1, string? q = null)
         {
             var userId = GetCurrentUserId();
             var role = GetCurrentUserRole();
@@ -62,6 +62,18 @@ namespace DaNangSafeMap.Controllers
             ViewBag.CurrentPage = page;
             ViewBag.UserId = userId;
             ViewBag.Role = role;
+            ViewBag.Query = q;
+
+            // Search mode — when ?q=... is supplied, show results instead of normal layout.
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                ViewBag.Mode = "search";
+                ViewBag.Categories = await _articleService.GetCategoriesAsync();
+                ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(6);
+                var results = await _articleService.SearchArticlesAsync(q, 40);
+                ViewBag.Latest = results;
+                return View("Index", new List<Article>());
+            }
 
             if (mode == "admin")
             {

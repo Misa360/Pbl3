@@ -342,6 +342,56 @@ body {
 }
 
 /* ════════════════════════════════════════
+   BELL NOTIFICATION (global)
+════════════════════════════════════════ */
+.dsm-bell { position: relative; display: inline-flex; align-items: center; }
+.dsm-bell__btn {
+    position: relative; width: 40px; height: 40px;
+    border-radius: 50%; border: none; background: rgba(0,137,123,0.08);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+}
+.dsm-bell__btn:hover { background: rgba(0,137,123,0.16); }
+.dsm-bell__btn svg { width: 20px; height: 20px; stroke: var(--teal-d); }
+.dsm-bell__badge {
+    position: absolute; top: 2px; right: 2px;
+    min-width: 18px; height: 18px; padding: 0 4px;
+    background: var(--coral, #EF5350); color: #fff;
+    font-size: 10px; font-weight: 700; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #fff;
+}
+.dsm-bell__dropdown {
+    position: absolute; top: 48px; right: 0;
+    width: 360px; max-height: 460px; background: #fff;
+    border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+    border: 1px solid var(--border); overflow: hidden;
+    display: none; flex-direction: column; z-index: 1001;
+}
+.dsm-bell__dropdown.open { display: flex; }
+.dsm-bell__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    font-weight: 700; color: var(--text);
+}
+.dsm-bell__mark {
+    background: none; border: none; color: var(--teal-d);
+    font-size: 12px; font-weight: 600; cursor: pointer; padding: 0;
+}
+.dsm-bell__mark:hover { text-decoration: underline; }
+.dsm-bell__list { overflow-y: auto; max-height: 400px; }
+.dsm-bell__empty { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+.dsm-bell__item {
+    display: block; padding: 12px 16px; border-bottom: 1px solid var(--border);
+    text-decoration: none; color: var(--text); transition: background .15s;
+}
+.dsm-bell__item:hover { background: var(--section-bg); }
+.dsm-bell__item.is-unread { background: rgba(0,137,123,0.05); border-left: 3px solid var(--teal); padding-left: 13px; }
+.dsm-bell__item-title { font-weight: 600; font-size: 13.5px; margin-bottom: 2px; }
+.dsm-bell__item-body { font-size: 12.5px; color: var(--text-s); margin-bottom: 4px; line-height: 1.4; }
+.dsm-bell__item-meta { font-size: 11px; color: var(--muted); }
+
+/* ════════════════════════════════════════
    MAIN LAYOUT
 ════════════════════════════════════════ */
 /* offset for fixed 64px navbar */

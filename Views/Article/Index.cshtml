@@ -281,6 +281,55 @@ else if (mode == "my")
         </div>
     </div>
 }
+else if (mode == "search")
+{
+    // ══════════════════════════════════════════════
+    // KẾT QUẢ TÌM KIẾM /Article?q=...
+    // ══════════════════════════════════════════════
+    var q = ViewBag.Query as string ?? "";
+    <link rel="stylesheet" href="~/css/article-news.css" />
+
+    <div class="bdn-page">
+        @await Html.PartialAsync("_ArticleSubNav")
+        <div class="bdn-container">
+            <div class="bdn-search__head">
+                <h1>Kết quả tìm kiếm</h1>
+                <small>Từ khóa: <strong>@q</strong> — @latest.Count kết quả</small>
+            </div>
+
+            @if (!latest.Any())
+            {
+                <div class="bdn-search__empty">
+                    Không tìm thấy bài viết nào khớp với từ khóa <strong>@q</strong>.
+                </div>
+            }
+            else
+            {
+                <div class="bdn-cat__list">
+                    @foreach (var it in latest)
+                    {
+                        <article class="bdn-cat__row">
+                            <a class="bdn-cat__row-img" href="/Article/Details/@it.Id">
+                                <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                            </a>
+                            <div class="bdn-cat__row-body">
+                                <h3><a href="/Article/Details/@it.Id">@it.Title</a></h3>
+                                <div class="bdn-cat__row-meta">
+                                    <span class="bdn-cat__row-cat">@(it.Category?.Name ?? "Tin tức")</span>
+                                    <span class="bdn-cat__row-date">@it.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(it.Summary))
+                                {
+                                    <p class="bdn-cat__row-sum">@it.Summary</p>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
 else if (mode == "public" || mode == "home")
 {
     // ══════════════════════════════════════════════
@@ -318,20 +367,6 @@ else if (mode == "public" || mode == "home")
 
     <div class="bdn-page">
         @await Html.PartialAsync("_ArticleSubNav")
-
-        @* Thanh chuyên mục đỏ đỏ kiểu baodanang — luôn hiển thị *@
-        <nav class="bdn-catnav" aria-label="Chuyên mục">
-            <div class="bdn-catnav__inner">
-                <a class="bdn-catnav__home @(isHome ? "is-active" : "")" href="/Article" aria-label="Trang chủ tin tức">🏠</a>
-                @foreach (var c in categories)
-                {
-                    <a class="bdn-catnav__item @(currentCat == c.Slug ? "is-active" : "")"
-                       href="/Article?categorySlug=@c.Slug">@c.Name</a>
-                }
-                <a class="bdn-catnav__item" href="/Article/SafeWiki">SafeWiki</a>
-                <a class="bdn-catnav__item" href="/Article/Hotline">Hotline</a>
-            </div>
-        </nav>
 
         @if (tickerItems.Any())
         {
@@ -487,84 +522,121 @@ else if (mode == "public" || mode == "home")
         else
         {
             // ══ TRANG CHUYÊN MỤC /Article?categorySlug=... ══
-            //   Format giống baodanang.vn/van-hoa-van-nghe — fit viewport, không cần scroll ngang.
-            var catObj = categories.FirstOrDefault(x => x.Slug == currentCat);
-            var catName = catObj?.Name ?? currentCat;
-            var bigCat = latest.FirstOrDefault();
-            var restCat = latest.Skip(1).Take(12).ToList();
-            var subCatsCat = subCatsMap.ContainsKey(currentCat ?? "") ? subCatsMap[currentCat!] : Array.Empty<string>();
+            //   Layout theo baodanang.vn/van-hoa-van-nghe:
+            //     • header catName + breadcrumb
+            //     • hero row: 1 bài lớn trái + 4 ô grid phải (2 có ảnh, 2 chỉ tiêu đề)
+            //     • body 2-col: list bài (thumb-left + title/date/summary) + aside widget
+            //       ĐỌC NHIỀU / TIN MỚI có đánh số 1-4.
+            var catObj  = categories.FirstOrDefault(x => x.Slug == currentCat);
+            var catName = catObj?.Name ?? currentCat ?? "";
+            var heroBig = latest.FirstOrDefault();
+            var topMinis = latest.Skip(1).Take(4).ToList();
+            var listItems = latest.Skip(5).ToList();
+            var popItems = (mostViewed ?? new List<DaNangSafeMap.Models.Entities.Article>()).Take(4).ToList();
+            var newItems = latest.Take(4).ToList();
 
-            <section class="bdn-block bdn-block--page">
-                <header class="bdn-block__head">
-                    <h1 class="bdn-block__title">
-                        <span class="bdn-block__rule"></span>
-                        @(catName?.ToUpper())
-                        <span class="bdn-block__rule"></span>
-                    </h1>
-                    @if (subCatsCat.Any())
-                    {
-                        <div class="bdn-block__subs">
-                            @for (int i = 0; i < subCatsCat.Length; i++)
-                            {
-                                <a href="/Article?categorySlug=@currentCat">@subCatsCat[i]</a>
-                                if (i < subCatsCat.Length - 1)
-                                {
-                                    <span class="bdn-block__sub-sep">|</span>
-                                }
-                            }
-                        </div>
-                    }
+            <section class="bdn-cat">
+                <header class="bdn-cat__head">
+                    <h1 class="bdn-cat__title">@catName.ToUpper()</h1>
+                    <nav class="bdn-cat__crumb" aria-label="Breadcrumb">
+                        <a href="/Article">Trang chủ</a> / <span>@catName</span>
+                    </nav>
                 </header>
 
-                @if (bigCat != null)
+                @if (heroBig != null)
                 {
-                    <div class="bdn-block__grid">
-                        <a class="bdn-big" href="/Article/Details/@bigCat.Id">
-                            <div class="bdn-big__img">
-                                <img src="@(bigCat.ImageUrl ?? "/images/default-article.jpg")" alt="@bigCat.Title" />
+                    <div class="bdn-cat__top">
+                        <a class="bdn-cat__big" href="/Article/Details/@heroBig.Id">
+                            <div class="bdn-cat__big-img">
+                                <img src="@(heroBig.ImageUrl ?? "/images/default-article.jpg")" alt="@heroBig.Title" />
                             </div>
-                            <h3 class="bdn-big__title">@bigCat.Title</h3>
-                            @if (!string.IsNullOrEmpty(bigCat.Summary))
-                            {
-                                <p class="bdn-big__lead"><span class="bdn-lead-dno">ĐNO</span> — @bigCat.Summary</p>
-                            }
+                            <h3 class="bdn-cat__big-title">@heroBig.Title</h3>
                         </a>
-
-                        <div class="bdn-minis bdn-minis--page">
-                            @foreach (var it in restCat.Take(6))
+                        <div class="bdn-cat__mini4">
+                            @for (int i = 0; i < topMinis.Count; i++)
                             {
-                                <a class="bdn-mini" href="/Article/Details/@it.Id">
-                                    <h4 class="bdn-mini__title">@it.Title</h4>
-                                    <div class="bdn-mini__img">
-                                        <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
-                                    </div>
+                                var it = topMinis[i];
+                                var withImg = i < 2;
+                                <a class="bdn-cat__mini" href="/Article/Details/@it.Id">
+                                    @if (withImg)
+                                    {
+                                        <div class="bdn-cat__mini-img">
+                                            <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                                        </div>
+                                    }
+                                    <h4 class="bdn-cat__mini-title">@it.Title</h4>
                                 </a>
                             }
                         </div>
                     </div>
                 }
 
-                @if (restCat.Count > 6)
-                {
-                    <div class="bdn-block__extra">
-                        @foreach (var it in restCat.Skip(6))
+                <div class="bdn-cat__grid">
+                    <div class="bdn-cat__list">
+                        @foreach (var it in listItems)
                         {
-                            <a class="bdn-mini bdn-mini--wide" href="/Article/Details/@it.Id">
-                                <h4 class="bdn-mini__title">@it.Title</h4>
-                                <div class="bdn-mini__img">
+                            <article class="bdn-cat__row">
+                                <a class="bdn-cat__row-img" href="/Article/Details/@it.Id">
                                     <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                                </a>
+                                <div class="bdn-cat__row-body">
+                                    <h3><a href="/Article/Details/@it.Id">@it.Title</a></h3>
+                                    <div class="bdn-cat__row-meta">
+                                        <span class="bdn-cat__row-cat">@catName</span>
+                                        <span class="bdn-cat__row-date">@it.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(it.Summary))
+                                    {
+                                        <p class="bdn-cat__row-sum">@it.Summary</p>
+                                    }
                                 </div>
-                            </a>
+                            </article>
+                        }
+                        @if (!listItems.Any() && heroBig == null)
+                        {
+                            <div class="bdn-empty" style="padding:40px 0;color:var(--bdn-muted);text-align:center;">
+                                Chưa có bài viết nào trong chuyên mục này.
+                            </div>
                         }
                     </div>
-                }
 
-                @if (!latest.Any())
-                {
-                    <div class="bdn-empty">
-                        <p>Chưa có bài viết nào trong chuyên mục này.</p>
-                    </div>
-                }
+                    <aside class="bdn-cat__aside">
+                        <div class="bdn-cat__tabs" role="tablist">
+                            <button class="bdn-cat__tab is-active" data-target="pop" type="button">Đọc nhiều</button>
+                            <button class="bdn-cat__tab" data-target="new" type="button">Tin mới</button>
+                        </div>
+                        <ol class="bdn-cat__rank" data-tab="pop">
+                            @for (int i = 0; i < popItems.Count; i++)
+                            {
+                                var p = popItems[i];
+                                <li>
+                                    <div class="bdn-cat__rank-num">@(i + 1)</div>
+                                    <div class="bdn-cat__rank-img">
+                                        <img src="@(p.ImageUrl ?? "/images/default-article.jpg")" alt="@p.Title" />
+                                    </div>
+                                    <div class="bdn-cat__rank-body">
+                                        <a href="/Article/Details/@p.Id">@p.Title</a>
+                                    </div>
+                                </li>
+                            }
+                        </ol>
+                        <ol class="bdn-cat__rank is-hidden" data-tab="new">
+                            @for (int i = 0; i < newItems.Count; i++)
+                            {
+                                var p = newItems[i];
+                                <li>
+                                    <div class="bdn-cat__rank-num">@(i + 1)</div>
+                                    <div class="bdn-cat__rank-img">
+                                        <img src="@(p.ImageUrl ?? "/images/default-article.jpg")" alt="@p.Title" />
+                                    </div>
+                                    <div class="bdn-cat__rank-body">
+                                        <a href="/Article/Details/@p.Id">@p.Title</a>
+                                    </div>
+                                </li>
+                            }
+                        </ol>
+                    </aside>
+                </div>
             </section>
         }
 
@@ -582,4 +654,22 @@ else if (mode == "public" || mode == "home")
 
 @section Scripts {
     <script src="~/js/article.js"></script>
+    <script>
+        // ── Category page: ĐỌC NHIỀU / TIN MỚI tab toggle ──
+        (function(){
+            var tabs = document.querySelectorAll('.bdn-cat__tab');
+            if (!tabs.length) return;
+            tabs.forEach(function(t){
+                t.addEventListener('click', function(){
+                    var target = t.getAttribute('data-target');
+                    document.querySelectorAll('.bdn-cat__tab').forEach(function(x){ x.classList.remove('is-active'); });
+                    t.classList.add('is-active');
+                    document.querySelectorAll('.bdn-cat__rank').forEach(function(o){
+                        if (o.getAttribute('data-tab') === target) o.classList.remove('is-hidden');
+                        else o.classList.add('is-hidden');
+                    });
+                });
+            });
+        })();
+    </script>
 }

@@ -358,6 +358,46 @@ namespace DaNangSafeMap.Services.Implementations
         }
 
         // ══════════════════════════════════════════════
+        // SEARCH
+        // ══════════════════════════════════════════════
+        // Full-text-ish LIKE search across approved articles. We keep it simple:
+        // match the raw keyword against title / summary / content. Diacritic-
+        // insensitive matching would require a custom collation on the DB side,
+        // which isn't configured here, so we trust MySQL's default ci collation.
+        public async Task<List<Article>> SearchArticlesAsync(string keyword, int take = 30)
+        {
+            if (string.IsNullOrWhiteSpace(keyword)) return new List<Article>();
+            var kw = keyword.Trim();
+            var like = $"%{kw}%";
+
+            return await _db.Articles.AsNoTracking()
+                .Include(a => a.Category)
+                .Include(a => a.Author)
+                .Where(a => a.Status == 2 && a.DeletedAt == null
+                            && (EF.Functions.Like(a.Title, like)
+                                || EF.Functions.Like(a.Summary ?? "", like)
+                                || EF.Functions.Like(a.Content ?? "", like)))
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(take)
+                .Select(a => new Article
+                {
+                    Id = a.Id,
+                    Title = a.Title,
+                    Slug = a.Slug,
+                    Summary = a.Summary,
+                    ImageUrl = a.ImageUrl,
+                    CategoryId = a.CategoryId,
+                    Category = a.Category,
+                    AuthorId = a.AuthorId,
+                    Author = a.Author,
+                    CreatedAt = a.CreatedAt,
+                    ViewCount = a.ViewCount,
+                    Status = a.Status
+                })
+                .ToListAsync();
+        }
+
+        // ══════════════════════════════════════════════
         // COMMENTS
         // ══════════════════════════════════════════════
 

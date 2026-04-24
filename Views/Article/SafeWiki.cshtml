@@ -59,11 +59,17 @@
         }
 
         /* Stage chiếm viewport trừ top-nav + sub-nav. */
+        /* dsm-nav (fixed 64px) sits above .page-content, so our 100vh container
+           would otherwise overflow by 64px and clip the bottom of the book.
+           Subtract the nav height here. */
         .safewiki-fullscreen {
-            --safewiki-top-offset: 120px;
+            --safewiki-nav-h: 64px;
+            --safewiki-subnav-h: 46px;
+            --safewiki-top-offset: calc(var(--safewiki-subnav-h) + 4px);
+            --safewiki-bottom-offset: 16px;
             position: relative;
             width: 100vw;
-            height: 100vh;
+            height: calc(100vh - var(--safewiki-nav-h));
             overflow: hidden;
             background: #f5f1e6;
         }
@@ -73,7 +79,7 @@
             top: var(--safewiki-top-offset);
             left: 0;
             right: 0;
-            bottom: 12px;
+            bottom: var(--safewiki-bottom-offset);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -151,7 +157,7 @@
         #slider-bar, .turnjs-slider, #slider { display: none !important; }
 
         @@media (max-width: 720px) {
-            .safewiki-fullscreen { --safewiki-top-offset: 100px; }
+            .safewiki-fullscreen { --safewiki-top-offset: 76px; --safewiki-bottom-offset: 24px; }
             #canvas {
                 width: min(calc(100vw - 60px), calc((100vh - var(--safewiki-top-offset) - 30px) * 1.548));
             }

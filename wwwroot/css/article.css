@@ -30,11 +30,12 @@
 .article-page-wrapper .article-container { flex-grow: 1; }
 .article-container { max-width: var(--art-max-w); margin: 0 auto; padding: 0 16px; }
 
-/* ── SUB NAVIGATION (Newspaper-style, image 2) ── */
+/* ── SUB NAVIGATION — teal gradient matching site theme ── */
 .art-subnav {
-    background: #1e2a35;
-    border-bottom: 3px solid var(--art-accent);
+    background: linear-gradient(90deg, #00695C 0%, #00897B 100%);
+    border-bottom: 3px solid #004d40;
     position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,105,92,0.15);
 }
 .art-subnav__inner {
     max-width: var(--art-max-w); margin: 0 auto;
@@ -52,9 +53,16 @@
     letter-spacing: 0.2px;
 }
 .art-subnav a:hover, .art-subnav a.active {
-    color: #fff; background: rgba(255,255,255,0.08);
-    border-bottom-color: var(--art-accent);
+    color: #fff; background: rgba(255,255,255,0.16);
+    border-bottom-color: #ffca28;
 }
+.art-subnav-search__btn {
+    background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.25);
+    color: #fff; font-size: 12px; font-weight: 600;
+    padding: 3px 10px; border-radius: 12px; cursor: pointer;
+    font-family: var(--art-sans); transition: background 0.15s;
+}
+.art-subnav-search__btn:hover { background: rgba(255,255,255,0.35); }
 .art-subnav__right {
     margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
 }
