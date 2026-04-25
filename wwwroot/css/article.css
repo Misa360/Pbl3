@@ -34,7 +34,7 @@
 .art-subnav {
     background: linear-gradient(90deg, #00695C 0%, #00897B 100%);
     border-bottom: 3px solid #004d40;
-    position: sticky; top: 0; z-index: 100;
+    position: sticky; top: 64px; z-index: 100;
     box-shadow: 0 2px 8px rgba(0,105,92,0.15);
 }
 .art-subnav__inner {

@@ -6,7 +6,8 @@
     var isWiki    = path.Contains("/SafeWiki",    StringComparison.OrdinalIgnoreCase);
     var isAnNinh  = activeSlug == "an-ninh";
     var isDoiSong = activeSlug == "doi-song";
-    var isHome    = activeMode == "home" || (!isAnNinh && !isDoiSong && !isWiki);
+    var isDetails = activeMode == "details";
+    var isHome    = activeMode == "home" || (!isAnNinh && !isDoiSong && !isWiki && !isDetails);
     var q         = (Context.Request.Query["q"].ToString()) ?? "";
 }
 

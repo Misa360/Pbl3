@@ -147,6 +147,10 @@ namespace DaNangSafeMap.Controllers
             ViewBag.UserId = userId;
             ViewBag.Role = GetCurrentUserRole();
 
+            // Để sub-nav highlight đúng mục (An ninh / Đời sống) khi đọc Details
+            ViewBag.CurrentCategory = article.Category?.Slug;
+            ViewBag.Mode = "details";
+
             return View("Details", article);
         }
 
