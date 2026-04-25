@@ -53,8 +53,8 @@
     letter-spacing: 0.2px;
 }
 .art-subnav a:hover, .art-subnav a.active {
-    color: #fff; background: rgba(255,255,255,0.16);
-    border-bottom-color: #ffca28;
+    color: #c8f5e9; background: rgba(255,255,255,0.18);
+    border-bottom-color: #c8f5e9;
 }
 .art-subnav__home { padding: 8px 12px !important; }
 .art-subnav__home svg {

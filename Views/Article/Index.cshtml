@@ -493,18 +493,20 @@ else if (mode == "public" || mode == "home")
                 </aside>
             </section>
 
-            @* ═══ TIN TIÊU BIỂU — carousel tự cuộn (pause on hover) ═══ *@
+            @* ═══ TIÊU ĐIỂM — coverflow (card giữa to, 2 bên nghiêng; auto-step, có 2 nút ‹ ›) ═══ *@
             @if (focusList.Any())
             {
                 <section class="bdn-focus" aria-label="Tin tiêu biểu">
                     <header class="bdn-focus__head">
                         <h2 class="bdn-focus__title">Tiêu điểm</h2>
                     </header>
-                    <div class="bdn-focus__viewport" id="bdnFocusViewport">
-                        <div class="bdn-focus__track" id="bdnFocusTrack">
-                            @foreach (var f in focusList)
+                    <div class="bdn-focus__stage" id="bdnFocusStage" data-count="@focusList.Count">
+                        <button type="button" class="bdn-focus__nav bdn-focus__nav--prev" aria-label="Trước">‹</button>
+                        <div class="bdn-focus__deck" id="bdnFocusDeck">
+                            @for (int fi = 0; fi < focusList.Count; fi++)
                             {
-                                <a class="bdn-focus__card" href="/Article/Details/@f.Id">
+                                var f = focusList[fi];
+                                <a class="bdn-focus__card" href="/Article/Details/@f.Id" data-index="@fi">
                                     <div class="bdn-focus__img">
                                         <img src="@(f.ImageUrl ?? "/images/default-article.jpg")" alt="@f.Title" loading="lazy" />
                                     </div>
@@ -513,19 +515,8 @@ else if (mode == "public" || mode == "home")
                                     </div>
                                 </a>
                             }
-                            @* clone 1 lần để vòng lặp liền mạch *@
-                            @foreach (var f in focusList)
-                            {
-                                <a class="bdn-focus__card" href="/Article/Details/@f.Id" aria-hidden="true" tabindex="-1">
-                                    <div class="bdn-focus__img">
-                                        <img src="@(f.ImageUrl ?? "/images/default-article.jpg")" alt="" loading="lazy" />
-                                    </div>
-                                    <div class="bdn-focus__overlay">
-                                        <h3 class="bdn-focus__card-title">@f.Title</h3>
-                                    </div>
-                                </a>
-                            }
                         </div>
+                        <button type="button" class="bdn-focus__nav bdn-focus__nav--next" aria-label="Sau">›</button>
                     </div>
                 </section>
             }
@@ -714,13 +705,64 @@ else if (mode == "public" || mode == "home")
 @section Scripts {
     <script src="~/js/article.js"></script>
     <script>
-        // ── Tiêu điểm: pause carousel while hovering on viewport ──
+        // ── Tiêu điểm coverflow: 3D fanned cards, auto-step every 4s, arrow nav ──
         (function(){
-            var vp = document.getElementById('bdnFocusViewport');
-            var tr = document.getElementById('bdnFocusTrack');
-            if (!vp || !tr) return;
-            vp.addEventListener('mouseenter', function(){ tr.classList.add('is-paused'); });
-            vp.addEventListener('mouseleave', function(){ tr.classList.remove('is-paused'); });
+            var stage = document.getElementById('bdnFocusStage');
+            var deck  = document.getElementById('bdnFocusDeck');
+            if (!stage || !deck) return;
+            var cards = Array.prototype.slice.call(deck.querySelectorAll('.bdn-focus__card'));
+            if (cards.length === 0) return;
+            var n = cards.length;
+            var current = 0;
+            var timer = null;
+            var interval = 4000;
+
+            function normalizedOffset(i, center, n){
+                var d = i - center;
+                if (d > n / 2)  d -= n;
+                if (d < -n / 2) d += n;
+                return d;
+            }
+
+            function render(){
+                cards.forEach(function(card, i){
+                    var off = normalizedOffset(i, current, n);
+                    var abs = Math.abs(off);
+                    var x = off * 180;                  // horizontal fan spread
+                    var ry = Math.max(-45, Math.min(45, off * -18));
+                    var z = -Math.min(abs, 3) * 80;
+                    var scale = 1 - Math.min(abs, 3) * 0.12;
+                    var opacity = abs > 3 ? 0 : 1 - Math.min(abs, 3) * 0.22;
+                    var zIndex = 100 - abs;
+                    card.style.transform = 'translate(-50%, -50%) translate3d(' + x + 'px, 0, ' + z + 'px) rotateY(' + ry + 'deg) scale(' + scale + ')';
+                    card.style.opacity = opacity;
+                    card.style.zIndex = zIndex;
+                    card.style.pointerEvents = abs > 3 ? 'none' : 'auto';
+                    card.classList.toggle('is-focused', abs === 0);
+                });
+            }
+
+            function go(delta){
+                current = (current + delta + n) % n;
+                render();
+            }
+            function start(){ if (timer) return; timer = setInterval(function(){ go(1); }, interval); }
+            function stop(){ if (timer){ clearInterval(timer); timer = null; } }
+
+            stage.querySelector('.bdn-focus__nav--prev').addEventListener('click', function(){ go(-1); stop(); start(); });
+            stage.querySelector('.bdn-focus__nav--next').addEventListener('click', function(){ go( 1); stop(); start(); });
+
+            stage.addEventListener('mouseenter', stop);
+            stage.addEventListener('mouseleave', start);
+
+            cards.forEach(function(card, i){
+                card.addEventListener('click', function(e){
+                    if (i !== current){ e.preventDefault(); current = i; render(); stop(); start(); }
+                });
+            });
+
+            render();
+            start();
         })();
         // ── Category page: ĐỌC NHIỀU / TIN MỚI tab toggle ──
         (function(){

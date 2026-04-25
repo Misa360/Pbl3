@@ -141,9 +141,9 @@ namespace DaNangSafeMap.Controllers
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             await _articleService.IncrementViewCountAsync(id, ip, userId);
 
-            ViewBag.Related = await _articleService.GetRelatedArticlesAsync(id, 6);
-            ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(5);
-            ViewBag.LatestSameCategory = await _articleService.GetLatestArticlesAsync(6, article.Category?.Slug);
+            ViewBag.Related = await _articleService.GetRelatedArticlesAsync(id, 10);
+            ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(6);
+            ViewBag.LatestSameCategory = await _articleService.GetLatestArticlesAsync(20, article.Category?.Slug);
             ViewBag.UserId = userId;
             ViewBag.Role = GetCurrentUserRole();
 
