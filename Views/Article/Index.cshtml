@@ -493,7 +493,7 @@ else if (mode == "public" || mode == "home")
                 </aside>
             </section>
 
-            @* ═══ TIÊU ĐIỂM — coverflow (card giữa to, 2 bên nghiêng; auto-step, có 2 nút ‹ ›) ═══ *@
+            @* ═══ TIÊU ĐIỂM — slide ngang, card cùng kích cỡ, auto-step 4s, ‹ › nav ═══ *@
             @if (focusList.Any())
             {
                 <section class="bdn-focus" aria-label="Tin tiêu biểu">
@@ -502,19 +502,21 @@ else if (mode == "public" || mode == "home")
                     </header>
                     <div class="bdn-focus__stage" id="bdnFocusStage" data-count="@focusList.Count">
                         <button type="button" class="bdn-focus__nav bdn-focus__nav--prev" aria-label="Trước">‹</button>
-                        <div class="bdn-focus__deck" id="bdnFocusDeck">
-                            @for (int fi = 0; fi < focusList.Count; fi++)
-                            {
-                                var f = focusList[fi];
-                                <a class="bdn-focus__card" href="/Article/Details/@f.Id" data-index="@fi">
-                                    <div class="bdn-focus__img">
-                                        <img src="@(f.ImageUrl ?? "/images/default-article.jpg")" alt="@f.Title" loading="lazy" />
-                                    </div>
-                                    <div class="bdn-focus__overlay">
-                                        <h3 class="bdn-focus__card-title">@f.Title</h3>
-                                    </div>
-                                </a>
-                            }
+                        <div class="bdn-focus__viewport">
+                            <div class="bdn-focus__deck" id="bdnFocusDeck">
+                                @for (int fi = 0; fi < focusList.Count; fi++)
+                                {
+                                    var f = focusList[fi];
+                                    <a class="bdn-focus__card" href="/Article/Details/@f.Id" data-index="@fi">
+                                        <div class="bdn-focus__img">
+                                            <img src="@(f.ImageUrl ?? "/images/default-article.jpg")" alt="@f.Title" loading="lazy" />
+                                        </div>
+                                        <div class="bdn-focus__overlay">
+                                            <h3 class="bdn-focus__card-title">@f.Title</h3>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
                         </div>
                         <button type="button" class="bdn-focus__nav bdn-focus__nav--next" aria-label="Sau">›</button>
                     </div>
@@ -705,61 +707,47 @@ else if (mode == "public" || mode == "home")
 @section Scripts {
     <script src="~/js/article.js"></script>
     <script>
-        // ── Tiêu điểm coverflow: 3D fanned cards, auto-step every 4s, arrow nav ──
+        // ── Tiêu điểm: slide ngang, card cùng kích cỡ, bước 1 bài / 4s ──
         (function(){
             var stage = document.getElementById('bdnFocusStage');
             var deck  = document.getElementById('bdnFocusDeck');
             if (!stage || !deck) return;
             var cards = Array.prototype.slice.call(deck.querySelectorAll('.bdn-focus__card'));
-            if (cards.length === 0) return;
             var n = cards.length;
+            if (n === 0) return;
+
+            var viewport = stage.querySelector('.bdn-focus__viewport');
             var current = 0;
             var timer = null;
             var interval = 4000;
 
-            function normalizedOffset(i, center, n){
-                var d = i - center;
-                if (d > n / 2)  d -= n;
-                if (d < -n / 2) d += n;
-                return d;
+            function step(){
+                var card = cards[0];
+                if (!card) return 0;
+                var cs = getComputedStyle(deck);
+                var gap = parseFloat(cs.columnGap || cs.gap) || 0;
+                return card.getBoundingClientRect().width + gap;
             }
-
+            function visibleCount(){
+                if (!viewport) return 1;
+                var s = step();
+                return s > 0 ? Math.max(1, Math.floor(viewport.clientWidth / s)) : 1;
+            }
             function render(){
-                cards.forEach(function(card, i){
-                    var off = normalizedOffset(i, current, n);
-                    var abs = Math.abs(off);
-                    var x = off * 180;                  // horizontal fan spread
-                    var ry = Math.max(-45, Math.min(45, off * -18));
-                    var z = -Math.min(abs, 3) * 80;
-                    var scale = 1 - Math.min(abs, 3) * 0.12;
-                    var opacity = abs > 3 ? 0 : 1 - Math.min(abs, 3) * 0.22;
-                    var zIndex = 100 - abs;
-                    card.style.transform = 'translate(-50%, -50%) translate3d(' + x + 'px, 0, ' + z + 'px) rotateY(' + ry + 'deg) scale(' + scale + ')';
-                    card.style.opacity = opacity;
-                    card.style.zIndex = zIndex;
-                    card.style.pointerEvents = abs > 3 ? 'none' : 'auto';
-                    card.classList.toggle('is-focused', abs === 0);
-                });
+                var maxStart = Math.max(0, n - visibleCount());
+                if (current < 0) current = maxStart;
+                if (current > maxStart) current = 0;
+                deck.style.transform = 'translateX(' + (-current * step()) + 'px)';
             }
-
-            function go(delta){
-                current = (current + delta + n) % n;
-                render();
-            }
+            function go(delta){ current += delta; render(); }
             function start(){ if (timer) return; timer = setInterval(function(){ go(1); }, interval); }
             function stop(){ if (timer){ clearInterval(timer); timer = null; } }
 
             stage.querySelector('.bdn-focus__nav--prev').addEventListener('click', function(){ go(-1); stop(); start(); });
             stage.querySelector('.bdn-focus__nav--next').addEventListener('click', function(){ go( 1); stop(); start(); });
-
             stage.addEventListener('mouseenter', stop);
             stage.addEventListener('mouseleave', start);
-
-            cards.forEach(function(card, i){
-                card.addEventListener('click', function(e){
-                    if (i !== current){ e.preventDefault(); current = i; render(); stop(); start(); }
-                });
-            });
+            window.addEventListener('resize', render);
 
             render();
             start();

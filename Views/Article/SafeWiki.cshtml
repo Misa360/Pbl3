@@ -23,10 +23,6 @@
     </aside>
 
     <div class="safewiki-stage">
-        <button type="button" class="safewiki-nav safewiki-nav--prev"
-                aria-label="Trang trước"
-                onclick="$('.sample-docs').turn('previous');">‹</button>
-
         <div id="canvas">
             <div id="book-zoom">
                 <div class="sample-docs"></div>
@@ -37,9 +33,46 @@
             </div>
         </div>
 
+        @* Prev/next buttons moved to bottom corners, curved-arrow style *@
+        <button type="button" class="safewiki-nav safewiki-nav--prev"
+                aria-label="Trang trước"
+                onclick="if(window.SafeWikiFlip){SafeWikiFlip.unlock();SafeWikiFlip.play();} $('.sample-docs').turn('previous');">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 14L4 9l5-5"/>
+                <path d="M4 9h11a5 5 0 0 1 0 10h-3"/>
+            </svg>
+        </button>
         <button type="button" class="safewiki-nav safewiki-nav--next"
                 aria-label="Trang sau"
-                onclick="$('.sample-docs').turn('next');">›</button>
+                onclick="if(window.SafeWikiFlip){SafeWikiFlip.unlock();SafeWikiFlip.play();} $('.sample-docs').turn('next');">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 14l5-5-5-5"/>
+                <path d="M20 9H9a5 5 0 0 0 0 10h3"/>
+            </svg>
+        </button>
+
+        @* Top-right icon cluster: sound toggle + fullscreen *@
+        <div class="safewiki-tools">
+            <button type="button" class="safewiki-tool" id="safewikiSoundBtn"
+                    aria-label="Tắt/bật tiếng" title="Tắt/bật tiếng lật trang">
+                <svg class="safewiki-tool__icon safewiki-tool__icon--on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+                <svg class="safewiki-tool__icon safewiki-tool__icon--off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <line x1="23" y1="9" x2="17" y2="15"/>
+                    <line x1="17" y1="9" x2="23" y2="15"/>
+                </svg>
+            </button>
+            <button type="button" class="safewiki-tool" id="safewikiFullBtn"
+                    aria-label="Toàn màn hình" title="Toàn màn hình">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+            </button>
+        </div>
     </div>
 
 </div>
@@ -83,7 +116,8 @@
             width: 100vw;
             height: calc(100vh - var(--safewiki-nav-h));
             overflow: hidden;
-            background: #f5f1e6;
+            /* Nền trắng ngà giống trang chủ, không còn màu vàng cream. */
+            background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
         }
 
         .safewiki-stage {
@@ -97,36 +131,36 @@
             align-items: center;
         }
 
-        /* Left sidebar — DaNangSafeMap brand block, sits beside the book. */
+        /* Left sidebar — DaNangSafeMap brand block, to hơn. */
         .safewiki-brand {
             position: absolute;
-            top: calc(var(--safewiki-top-offset) + 24px);
-            left: 24px;
-            width: 200px;
-            padding: 22px 20px;
+            top: calc(var(--safewiki-top-offset) + 40px);
+            left: 32px;
+            width: 280px;
+            padding: 28px 26px 30px;
             background: linear-gradient(180deg, #00695C 0%, #00897B 100%);
             color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 8px 22px rgba(0,105,92,0.26);
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(0,105,92,0.28);
             z-index: 4;
             font-family: 'Be Vietnam Pro', -apple-system, 'Segoe UI', sans-serif;
         }
         .safewiki-brand__logo {
-            width: 48px; height: 48px; border-radius: 50%;
-            background: rgba(255,255,255,0.15);
+            width: 72px; height: 72px; border-radius: 50%;
+            background: rgba(255,255,255,0.18);
             display: flex; align-items: center; justify-content: center;
-            margin-bottom: 14px;
+            margin-bottom: 20px;
         }
-        .safewiki-brand__logo svg { width: 26px; height: 26px; color: #fff; }
+        .safewiki-brand__logo svg { width: 40px; height: 40px; color: #fff; }
         .safewiki-brand__name {
-            font-size: 18px; font-weight: 800; letter-spacing: 0.4px;
-            line-height: 1.2; margin-bottom: 10px;
+            font-size: 26px; font-weight: 800; letter-spacing: 0.5px;
+            line-height: 1.15; margin-bottom: 14px;
         }
         .safewiki-brand__tag {
-            font-size: 12.5px; line-height: 1.45;
-            color: rgba(255,255,255,0.86);
+            font-size: 14.5px; line-height: 1.5;
+            color: rgba(255,255,255,0.92);
         }
-        @@media (max-width: 1024px) { .safewiki-brand { display: none; } }
+        @@media (max-width: 1100px) { .safewiki-brand { display: none; } }
 
         /* Book uses fixed logical dimensions (turn.js needs explicit pixel
            sizes). We wrap #canvas in a transform-scale so the book always
@@ -173,28 +207,43 @@
             width:22px; height:22px; position:absolute; top:45%; left:47%;
         }
 
-        /* Nav buttons on each side — still small, don't clutter */
+        /* Prev/next — mũi tên cong ở góc đáy của khu vực sách. */
         .safewiki-nav {
             position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 40px;
-            height: 40px;
+            bottom: 12px;
+            width: 44px; height: 44px;
             border-radius: 50%;
             border: none;
-            background: var(--art-accent, #2D6A4F);
-            color: #fff;
-            font-size: 22px;
-            line-height: 1;
+            background: transparent;
+            color: #3a3a3a;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.22);
             z-index: 5;
-            transition: transform 0.15s ease, background 0.15s ease;
-            opacity: 0.85;
+            display: flex; align-items: center; justify-content: center;
+            transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
         }
-        .safewiki-nav:hover { background: var(--art-accent-dark, #1B4332); opacity: 1; transform: translateY(-50%) scale(1.05); }
-        .safewiki-nav--prev { left: 16px; }
-        .safewiki-nav--next { right: 16px; }
+        .safewiki-nav svg { width: 26px; height: 26px; display: block; }
+        .safewiki-nav:hover { color: var(--art-accent, #00695C); background: rgba(0,105,92,0.08); transform: scale(1.06); }
+        .safewiki-nav--prev { left: 32px; }
+        .safewiki-nav--next { right: 32px; }
+
+        /* Cụm icon góc trên-phải: bật/tắt tiếng + toàn màn hình. */
+        .safewiki-tools {
+            position: absolute;
+            top: 12px; right: 24px;
+            display: flex; gap: 6px;
+            z-index: 5;
+        }
+        .safewiki-tool {
+            width: 36px; height: 36px;
+            border-radius: 8px; border: none;
+            background: rgba(255,255,255,0.7);
+            color: #3a3a3a;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .safewiki-tool svg { width: 18px; height: 18px; }
+        .safewiki-tool:hover { background: var(--art-accent, #00695C); color: #fff; }
 
         /* Hide the slider bar entirely since we only want the book */
         #slider-bar, .turnjs-slider, #slider { display: none !important; }
@@ -204,9 +253,11 @@
             #canvas {
                 width: min(calc(100vw - 60px), calc((100vh - var(--safewiki-top-offset) - 30px) * 1.548));
             }
-            .safewiki-nav { width: 34px; height: 34px; font-size: 18px; }
-            .safewiki-nav--prev { left: 6px; }
-            .safewiki-nav--next { right: 6px; }
+            .safewiki-nav { width: 36px; height: 36px; }
+            .safewiki-nav svg { width: 20px; height: 20px; }
+            .safewiki-nav--prev { left: 10px; }
+            .safewiki-nav--next { right: 10px; }
+            .safewiki-tools { right: 10px; }
         }
     </style>
 
@@ -214,6 +265,7 @@
         // ── Page-flip sound (synthesized via Web Audio, no external file) ──
         window.SafeWikiFlip = (function () {
             var ctx = null;
+            var muted = false;
             function ensure() {
                 if (ctx) return ctx;
                 try {
@@ -225,42 +277,69 @@
             }
             function unlock() {
                 var a = ensure(); if (!a) return;
-                if (a.state === 'suspended') { a.resume(); }
+                if (a.state === 'suspended') { try { a.resume(); } catch(e){} }
             }
-            // First user gesture unlocks audio (browsers block autoplay).
-            document.addEventListener('click', unlock, { once: true });
-            document.addEventListener('keydown', unlock, { once: true });
+            function setMuted(m) { muted = !!m; }
+            function isMuted() { return muted; }
+            // Bắt mọi gesture đầu tiên (không dùng { once: true } để chắc chắn unlock nhiều lần)
+            ['click', 'keydown', 'touchstart'].forEach(function (ev) {
+                document.addEventListener(ev, unlock, true);
+            });
 
             function play() {
+                if (muted) return;
                 var a = ensure(); if (!a) return;
                 if (a.state === 'suspended') { try { a.resume(); } catch(e){} }
                 var now = a.currentTime;
-                // Burst of shaped noise → short "paper flip" swoosh.
-                var dur = 0.22;
+                // Hai lớp noise: (1) "whoosh" dài 0.25s, (2) "snap" ngắn 0.05s.
                 var sampleRate = a.sampleRate;
+                var dur = 0.28;
                 var buf = a.createBuffer(1, Math.floor(sampleRate * dur), sampleRate);
                 var data = buf.getChannelData(0);
                 for (var i = 0; i < data.length; i++) {
                     var t = i / data.length;
-                    // White noise windowed by an asymmetric envelope (fast attack, long decay).
-                    var env = Math.pow(1 - t, 2.0) * (t < 0.08 ? t / 0.08 : 1);
-                    data[i] = (Math.random() * 2 - 1) * env * 0.35;
+                    var attack = t < 0.05 ? t / 0.05 : 1;
+                    var decay = Math.pow(1 - t, 1.8);
+                    var snap = (t < 0.04) ? Math.pow(1 - t / 0.04, 2) * 0.6 : 0;
+                    data[i] = (Math.random() * 2 - 1) * (attack * decay * 0.45 + snap);
                 }
                 var src = a.createBufferSource();
                 src.buffer = buf;
-                // Band-pass around 2 kHz for "paper" timbre.
                 var bp = a.createBiquadFilter();
                 bp.type = 'bandpass';
-                bp.frequency.value = 2200;
-                bp.Q.value = 0.9;
+                bp.frequency.value = 2400;
+                bp.Q.value = 1.0;
                 var gain = a.createGain();
-                gain.gain.setValueAtTime(0.7, now);
+                gain.gain.setValueAtTime(0.8, now);
                 src.connect(bp); bp.connect(gain); gain.connect(a.destination);
                 src.start(now);
                 src.stop(now + dur + 0.05);
             }
-            return { play: play };
+            return { play: play, unlock: unlock, setMuted: setMuted, isMuted: isMuted };
         })();
+
+        // Wire tool buttons (sound toggle + fullscreen)
+        document.addEventListener('DOMContentLoaded', function () {
+            var soundBtn = document.getElementById('safewikiSoundBtn');
+            var onIcon  = soundBtn && soundBtn.querySelector('.safewiki-tool__icon--on');
+            var offIcon = soundBtn && soundBtn.querySelector('.safewiki-tool__icon--off');
+            if (soundBtn) {
+                soundBtn.addEventListener('click', function () {
+                    var m = !window.SafeWikiFlip.isMuted();
+                    window.SafeWikiFlip.setMuted(m);
+                    if (onIcon)  onIcon.style.display  = m ? 'none' : '';
+                    if (offIcon) offIcon.style.display = m ? '' : 'none';
+                });
+            }
+            var fullBtn = document.getElementById('safewikiFullBtn');
+            if (fullBtn) {
+                fullBtn.addEventListener('click', function () {
+                    var el = document.querySelector('.safewiki-fullscreen') || document.documentElement;
+                    if (document.fullscreenElement) { document.exitFullscreen(); }
+                    else if (el.requestFullscreen) { el.requestFullscreen(); }
+                });
+            }
+        });
 
         // Hide the slider element that docs.js may expect, and init turn.js.
         // Slider / hash / mousewheel are kept functional internally so turn.js

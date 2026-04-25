@@ -686,9 +686,8 @@
 .bdn-event__meta strong { color: var(--bdn-ink); text-transform: uppercase; letter-spacing: .4px; }
 
 /* ════════════════════════════════════════════════════════════════
-   TIÊU ĐIỂM — 3D coverflow. Cards fan out around a focused centre
-   card; JS applies per-card transforms based on distance from
-   currentIndex. Auto-advances one step every 4s unless hovered.
+   TIÊU ĐIỂM — slide ngang đơn giản. Card cùng kích cỡ, gap 20px,
+   JS translateX deck theo từng bước 1 card mỗi 4 giây.
    ════════════════════════════════════════════════════════════════ */
 .bdn-focus {
     background: linear-gradient(180deg, #f4fbf9 0%, #e6f4f1 100%);
@@ -707,30 +706,32 @@
 .bdn-focus__stage {
     position: relative;
     width: 100%; max-width: var(--bdn-container-w); margin: 0 auto;
-    height: 440px;
-    perspective: 1400px;
-    perspective-origin: 50% 50%;
+    padding: 0 60px;
+    box-sizing: border-box;
+}
+.bdn-focus__viewport {
+    overflow: hidden;
+    width: 100%;
 }
 .bdn-focus__deck {
-    position: absolute; left: 50%; top: 50%;
-    width: 0; height: 0;
-    transform-style: preserve-3d;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 20px;
+    transition: transform 0.55s cubic-bezier(.22,.61,.36,1);
+    will-change: transform;
 }
 .bdn-focus__card {
-    position: absolute; left: 50%; top: 50%;
-    width: 260px; height: 380px;
-    margin: 0; display: block; text-decoration: none; color: #fff;
+    flex: 0 0 260px;
+    width: 260px; height: 360px;
+    display: block; text-decoration: none; color: #fff;
     border-radius: 6px; overflow: hidden; background: #000;
-    box-shadow: 0 24px 48px rgba(0,0,0,0.22), 0 6px 12px rgba(0,0,0,0.18);
-    transform: translate(-50%, -50%);
-    transform-origin: center center;
-    transition: transform 0.55s cubic-bezier(.22,.61,.36,1),
-                opacity   0.4s ease;
-    backface-visibility: hidden;
-    will-change: transform, opacity;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.16), 0 4px 8px rgba(0,0,0,0.10);
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.bdn-focus__card.is-focused {
-    box-shadow: 0 32px 64px rgba(0,105,92,0.28), 0 10px 18px rgba(0,0,0,0.22);
+.bdn-focus__card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 30px rgba(0,105,92,0.22), 0 6px 12px rgba(0,0,0,0.14);
 }
 .bdn-focus__img { width: 100%; height: 100%; background: #333; }
 .bdn-focus__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -748,23 +749,22 @@
     position: absolute; top: 50%; transform: translateY(-50%);
     width: 44px; height: 44px; border-radius: 50%; border: none;
     background: var(--bdn-green); color: #fff; font-size: 24px; line-height: 1;
-    cursor: pointer; z-index: 200;
+    cursor: pointer; z-index: 5;
     box-shadow: 0 6px 14px rgba(0,105,92,0.35);
     transition: background 0.15s ease, transform 0.15s ease;
 }
 .bdn-focus__nav:hover { background: var(--bdn-green-dark); transform: translateY(-50%) scale(1.05); }
-.bdn-focus__nav--prev { left: 24px; }
-.bdn-focus__nav--next { right: 24px; }
+.bdn-focus__nav--prev { left: 8px; }
+.bdn-focus__nav--next { right: 8px; }
 
 @media (max-width: 1024px) {
-    .bdn-focus__stage { height: 380px; }
-    .bdn-focus__card { width: 220px; height: 320px; }
+    .bdn-focus__card { flex-basis: 220px; width: 220px; height: 320px; }
 }
 @media (max-width: 720px) {
-    .bdn-focus__stage { height: 320px; }
-    .bdn-focus__card { width: 180px; height: 260px; }
-    .bdn-focus__nav--prev { left: 8px; }
-    .bdn-focus__nav--next { right: 8px; }
+    .bdn-focus__stage { padding: 0 48px; }
+    .bdn-focus__card { flex-basis: 200px; width: 200px; height: 280px; }
+    .bdn-focus__nav--prev { left: 4px; }
+    .bdn-focus__nav--next { right: 4px; }
 }
 @media (max-width: 640px) {
     .bdn-sidecard__duo { grid-template-columns: 1fr; }
