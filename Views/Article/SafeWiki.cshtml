@@ -227,59 +227,31 @@
     </style>
 
     <script>
-        // ── Page-flip sound (synthesized via Web Audio, no external file) ──
+        // ── Page-flip sound (HTML5 Audio MP3) ──
         window.SafeWikiFlip = (function () {
-            var ctx = null;
             var muted = false;
-            function ensure() {
-                if (ctx) return ctx;
-                try {
-                    var AC = window.AudioContext || window.webkitAudioContext;
-                    if (!AC) return null;
-                    ctx = new AC();
-                } catch (e) { return null; }
-                return ctx;
+            // Pool 3 audio elements để có thể trigger liên tiếp không bị cắt.
+            var pool = [];
+            for (var i = 0; i < 3; i++) {
+                var a = new Audio('/audio/page-flip.mp3?v=1');
+                a.preload = 'auto';
+                a.volume = 0.55;
+                pool.push(a);
             }
-            function unlock() {
-                var a = ensure(); if (!a) return;
-                if (a.state === 'suspended') { try { a.resume(); } catch(e){} }
-            }
+            var idx = 0;
+            // No-op stubs cho API tương thích với inline onclick gọi unlock().
+            function unlock() { /* play() chạy trong user click nên không cần unlock riêng */ }
             function setMuted(m) { muted = !!m; }
             function isMuted() { return muted; }
-            // Bắt mọi gesture đầu tiên (không dùng { once: true } để chắc chắn unlock nhiều lần)
-            ['click', 'keydown', 'touchstart'].forEach(function (ev) {
-                document.addEventListener(ev, unlock, true);
-            });
-
             function play() {
                 if (muted) return;
-                var a = ensure(); if (!a) return;
-                if (a.state === 'suspended') { try { a.resume(); } catch(e){} }
-                var now = a.currentTime;
-                // Hai lớp noise: (1) "whoosh" dài, (2) "snap" ngắn ở đầu.
-                var sampleRate = a.sampleRate;
-                var dur = 0.32;
-                var buf = a.createBuffer(1, Math.floor(sampleRate * dur), sampleRate);
-                var data = buf.getChannelData(0);
-                for (var i = 0; i < data.length; i++) {
-                    var t = i / data.length;
-                    var attack = t < 0.04 ? t / 0.04 : 1;
-                    var decay = Math.pow(1 - t, 1.6);
-                    var snap = (t < 0.05) ? Math.pow(1 - t / 0.05, 2) * 0.9 : 0;
-                    data[i] = (Math.random() * 2 - 1) * (attack * decay * 0.9 + snap);
-                }
-                var src = a.createBufferSource();
-                src.buffer = buf;
-                // Dải band-pass hơi rộng + peak quanh 2 kHz cho cảm giác giấy.
-                var bp = a.createBiquadFilter();
-                bp.type = 'bandpass';
-                bp.frequency.value = 2200;
-                bp.Q.value = 0.7;
-                var gain = a.createGain();
-                gain.gain.setValueAtTime(0.55, now);
-                src.connect(bp); bp.connect(gain); gain.connect(a.destination);
-                src.start(now);
-                src.stop(now + dur + 0.05);
+                var a = pool[idx % pool.length];
+                idx++;
+                try {
+                    a.currentTime = 0;
+                    var p = a.play();
+                    if (p && typeof p.catch === 'function') p.catch(function(){});
+                } catch (e) { /* ignore */ }
             }
             return { play: play, unlock: unlock, setMuted: setMuted, isMuted: isMuted };
         })();
