@@ -545,24 +545,24 @@ else if (mode == "public" || mode == "home")
                 <div class="bdn-aware__rig" id="bdnAwareRig">
                     <div class="bdn-aware__side bdn-aware__side--prev" id="bdnAwarePrev"></div>
 
+                    <button type="button" class="bdn-aware__arrow bdn-aware__arrow--prev" id="bdnAwareBtnPrev" aria-label="Trước">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    </button>
+
                     <div class="bdn-aware__device">
                         <div class="bdn-aware__bezel">
                             <div class="bdn-aware__screen">
                                 @* Track chứa N slide, JS sẽ translateX để chuyển *@
                                 <div class="bdn-aware__track" id="bdnAwareTrack"></div>
-
-                                @* Mũi tên ‹ › NẰM TRONG màn hình laptop *@
-                                <button type="button" class="bdn-aware__arrow bdn-aware__arrow--prev" id="bdnAwareBtnPrev" aria-label="Trước">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
-                                </button>
-                                <button type="button" class="bdn-aware__arrow bdn-aware__arrow--next" id="bdnAwareBtnNext" aria-label="Sau">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-                                </button>
                             </div>
                         </div>
                         <div class="bdn-aware__base"></div>
                         <div class="bdn-aware__dots" id="bdnAwareDots"></div>
                     </div>
+
+                    <button type="button" class="bdn-aware__arrow bdn-aware__arrow--next" id="bdnAwareBtnNext" aria-label="Sau">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </button>
 
                     <div class="bdn-aware__side bdn-aware__side--next" id="bdnAwareNext"></div>
                 </div>

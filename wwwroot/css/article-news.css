@@ -800,22 +800,22 @@
     font-size: 14px; color: var(--bdn-lead); line-height: 1.5;
 }
 
-/* ── Layout: side prev | laptop | side next (mũi tên giờ TRONG laptop) ── */
+/* ── Layout: side-prev | arrow ‹ | laptop | arrow › | side-next ── */
 .bdn-aware__rig {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 24px;
-    max-width: 1100px;
+    grid-template-columns: 1fr auto auto auto 1fr;
+    align-items: stretch;
+    gap: 16px;
+    max-width: 1180px;
     margin: 0 auto;
 }
 
-/* Side cards (text only, ngoài laptop) — nền xanh nhạt để nổi trên page bg */
+/* Side cards: text-only, CAO bằng laptop screen, padding lớn để text căn giữa dọc */
 .bdn-aware__side {
     background: #e8f5ee;
     border: 1px solid rgba(0,105,92,0.10);
     border-radius: 14px;
-    padding: 36px 18px;
+    padding: 24px 20px;
     text-align: center;
     font-family: var(--bdn-serif);
     font-size: 17px; font-weight: 700;
@@ -824,6 +824,11 @@
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,40,30,0.04);
     transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+    align-self: center;
 }
 .bdn-aware__side:hover {
     transform: translateY(-1px);
@@ -831,28 +836,20 @@
     box-shadow: 0 6px 18px rgba(0,40,30,0.08);
 }
 
-/* Arrow buttons — TRÒN, NẰM TRONG màn hình laptop, mép trái/phải */
+/* Arrow icons — đơn giản (không khung), nằm GIỮA side card và laptop */
 .bdn-aware__arrow {
-    position: absolute;
-    top: 50%; transform: translateY(-50%);
+    background: transparent;
+    border: 0;
     width: 40px; height: 40px;
-    background: rgba(255,255,255,0.92);
-    border: 1px solid rgba(0,0,0,0.06);
-    border-radius: 50%;
-    color: var(--bdn-green-dark, #00524a);
+    color: var(--bdn-ink, #222);
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-    z-index: 5;
+    align-self: center;
+    transition: color 0.2s, transform 0.2s;
+    padding: 0;
 }
-.bdn-aware__arrow:hover {
-    background: var(--bdn-green); color: #fff;
-    box-shadow: 0 4px 14px rgba(0,105,92,0.30);
-}
-.bdn-aware__arrow svg { width: 18px; height: 18px; }
-.bdn-aware__arrow--prev { left: 12px; }
-.bdn-aware__arrow--next { right: 12px; }
+.bdn-aware__arrow:hover { color: var(--bdn-green); transform: scale(1.15); }
+.bdn-aware__arrow svg { width: 28px; height: 28px; }
 
 /* ── Laptop mockup ── */
 .bdn-aware__device {
@@ -885,7 +882,7 @@
 .bdn-aware__slide {
     flex: 0 0 100%;
     width: 100%;
-    padding: 28px 50px 24px; /* chừa chỗ 2 mũi tên ở mép trái/phải */
+    padding: 28px 28px 24px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -964,25 +961,29 @@
 .bdn-aware__dot.is-active { background: var(--bdn-green); width: 22px; border-radius: 4px; }
 
 @media (max-width: 1000px) {
-    .bdn-aware__rig { grid-template-columns: 1fr auto 1fr; gap: 16px; }
-    .bdn-aware__side { padding: 22px 12px; font-size: 14.5px; }
+    .bdn-aware__rig { gap: 10px; grid-template-columns: 1fr auto auto auto 1fr; }
+    .bdn-aware__side { padding: 22px 12px; font-size: 14.5px; min-height: 220px; }
     .bdn-aware__device { width: 420px; }
 }
 @media (max-width: 760px) {
-    .bdn-aware__rig { grid-template-columns: 1fr; }
+    .bdn-aware__rig {
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+            ". laptop ."
+            "prev . next";
+    }
+    .bdn-aware__device { grid-area: laptop; width: 100%; max-width: 480px; margin: 0 auto; }
+    .bdn-aware__arrow--prev { grid-area: prev; }
+    .bdn-aware__arrow--next { grid-area: next; }
     .bdn-aware__side { display: none; }
-    .bdn-aware__device { width: 100%; max-width: 480px; margin: 0 auto; }
     .bdn-aware__title { font-size: 24px; }
 }
 @media (max-width: 480px) {
     .bdn-aware { padding: 24px 12px 28px; }
-    .bdn-aware__slide { padding: 24px 44px 20px; }
+    .bdn-aware__slide { padding: 24px 18px 20px; }
     .bdn-aware__icon { width: 120px; height: 120px; margin: 0 auto -44px; }
     .bdn-aware__icon svg { width: 120px; height: 120px; }
     .bdn-aware__panel { padding: 60px 18px 20px; }
-    .bdn-aware__arrow { width: 34px; height: 34px; }
-    .bdn-aware__arrow--prev { left: 6px; }
-    .bdn-aware__arrow--next { right: 6px; }
     .bdn-aware__title { font-size: 22px; }
 }
 
