@@ -774,13 +774,13 @@
 }
 
 /* ════════════════════════════════════════════════════════════════
-   AN TOÀN KHÔNG GIAN MẠNG — phòng chống lừa đảo coverflow card row
+   AN TOÀN KHÔNG GIAN MẠNG — laptop mockup carousel
    ════════════════════════════════════════════════════════════════ */
 .bdn-aware {
-    margin: 40px auto 32px;
+    margin: 48px auto 40px;
     max-width: var(--bdn-container-w);
-    padding: 36px 24px 44px;
-    background: linear-gradient(135deg, #f0f9f4 0%, #e6f4ea 100%);
+    padding: 32px 24px 36px;
+    background: #f3f8fb;
     border-radius: 4px;
 }
 .bdn-aware__head { text-align: center; margin-bottom: 28px; }
@@ -800,90 +800,160 @@
     margin: 0 auto; max-width: 620px;
     font-size: 14px; color: var(--bdn-lead); line-height: 1.5;
 }
-.bdn-aware__stage {
-    position: relative;
-    padding: 0 56px;
-}
-.bdn-aware__viewport {
-    overflow: hidden;
+
+/* ── Layout: side prev | arrow | laptop | arrow | side next ── */
+.bdn-aware__rig {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto 1fr;
+    align-items: center;
+    gap: 14px;
+    max-width: 1100px;
     margin: 0 auto;
 }
-.bdn-aware__deck {
-    display: flex;
-    gap: 20px;
-    transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
-    will-change: transform;
-}
-.bdn-aware__card {
-    flex: 0 0 calc((100% - 40px) / 3);
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.04);
+
+/* Side cards (text only, ngoài laptop) */
+.bdn-aware__side {
+    background: #ffffff;
     border-radius: 12px;
-    padding: 28px 24px 26px;
-    box-shadow: 0 4px 14px rgba(0,40,30,0.06);
-    transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+    padding: 32px 18px;
     text-align: center;
-    opacity: 0.62;
-    transform: scale(0.94);
+    font-family: var(--bdn-serif);
+    font-size: 17px; font-weight: 700;
+    color: var(--bdn-green-dark, #00524a);
+    line-height: 1.35;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,40,30,0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
-.bdn-aware__card.is-active {
-    opacity: 1;
-    transform: scale(1.02);
-    box-shadow: 0 12px 28px rgba(0,80,60,0.14);
-    border-bottom: 4px solid var(--bdn-green);
-}
-.bdn-aware__icon {
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center;
-    margin-bottom: 16px;
-}
-.bdn-aware__icon svg { width: 30px; height: 30px; }
-.bdn-aware__card-title {
-    font-family: var(--bdn-serif); font-size: 18px; font-weight: 700;
-    color: var(--bdn-ink); margin: 0 0 10px; line-height: 1.3;
-}
-.bdn-aware__card-text {
-    margin: 0; font-size: 13.5px; line-height: 1.55;
-    color: var(--bdn-lead);
-}
-.bdn-aware__nav {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.06);
+.bdn-aware__side:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,40,30,0.08); }
+
+/* Arrow buttons — vuông mảnh giữa laptop và side card */
+.bdn-aware__arrow {
+    width: 38px; height: 38px;
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.18);
+    border-radius: 4px;
     color: var(--bdn-ink);
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: background 0.2s, color 0.2s, transform 0.2s;
-    z-index: 2;
+    transition: background 0.2s, color 0.2s;
 }
-.bdn-aware__nav:hover { background: var(--bdn-green); color: #fff; transform: translateY(-50%) scale(1.05); }
-.bdn-aware__nav svg { width: 20px; height: 20px; }
-.bdn-aware__nav--prev { left: 4px; }
-.bdn-aware__nav--next { right: 4px; }
+.bdn-aware__arrow:hover { background: var(--bdn-green); color: #fff; border-color: var(--bdn-green); }
+.bdn-aware__arrow svg { width: 18px; height: 18px; }
+
+/* ── Laptop mockup ── */
+.bdn-aware__device {
+    width: 480px;
+    max-width: 100%;
+    position: relative;
+    padding-top: 26px; /* chừa chỗ cho icon nhô lên */
+}
+.bdn-aware__bezel {
+    background: #2c2c2c;
+    border-radius: 14px;
+    padding: 14px 14px 16px;
+    box-shadow: 0 18px 32px rgba(0,0,0,0.10);
+    position: relative;
+}
+.bdn-aware__screen {
+    background: #ffffff;
+    border-radius: 6px;
+    min-height: 320px;
+    position: relative;
+    padding: 26px 22px 14px;
+    overflow: visible;
+}
+.bdn-aware__base {
+    width: 100%;
+    height: 14px;
+    background: #b9b9b9;
+    border-radius: 0 0 18px 18px;
+    margin: 0 auto;
+}
+.bdn-aware__base::before {
+    content: '';
+    display: block;
+    width: 78px; height: 6px;
+    background: #cfcfcf;
+    border-radius: 0 0 8px 8px;
+    margin: 0 auto;
+}
+
+/* Icon nhô lưng chừng nửa trong nửa ngoài screen, chỉ active mới hiện */
+.bdn-aware__icon {
+    position: absolute;
+    top: -52px; left: 50%; transform: translateX(-50%);
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+}
+.bdn-aware__icon.is-active {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+.bdn-aware__icon svg { width: 44px; height: 44px; }
+
+/* Panel nội dung trong screen */
+.bdn-aware__panel {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 28px 22px 26px;
+    text-align: center;
+    box-shadow: 0 6px 16px rgba(0,40,30,0.06);
+    border-bottom: 4px solid var(--bdn-green);
+    margin-top: 32px;
+}
+.bdn-aware__panel-title {
+    font-family: var(--bdn-serif); font-size: 20px; font-weight: 700;
+    color: var(--bdn-green-dark, #00524a); margin: 0 0 10px; line-height: 1.3;
+}
+.bdn-aware__panel-text {
+    margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--bdn-lead);
+}
+
+/* Dot indicators in laptop screen base */
 .bdn-aware__dots {
     display: flex; justify-content: center; gap: 8px;
-    margin-top: 22px;
+    margin-top: 20px;
 }
 .bdn-aware__dot {
     width: 8px; height: 8px; border-radius: 50%;
-    background: rgba(0,105,92,0.25);
+    background: rgba(0,105,92,0.20);
     border: none; cursor: pointer; padding: 0;
     transition: background 0.2s, width 0.2s;
 }
 .bdn-aware__dot.is-active { background: var(--bdn-green); width: 22px; border-radius: 4px; }
 
-@media (max-width: 880px) {
-    .bdn-aware__card { flex-basis: calc((100% - 20px) / 2); }
+/* Animation when content swaps */
+.bdn-aware__panel.is-fading,
+.bdn-aware__icon.is-fading { opacity: 0.2; }
+
+@media (max-width: 1000px) {
+    .bdn-aware__rig { grid-template-columns: auto auto auto auto auto; }
+    .bdn-aware__side { padding: 22px 12px; font-size: 14.5px; }
+    .bdn-aware__device { width: 380px; }
+}
+@media (max-width: 760px) {
+    .bdn-aware__rig {
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+            ". laptop ."
+            "prev side-row next";
+    }
+    .bdn-aware__device { grid-area: laptop; width: 100%; max-width: 420px; margin: 0 auto; }
+    .bdn-aware__arrow--prev { grid-area: prev; }
+    .bdn-aware__arrow--next { grid-area: next; }
+    .bdn-aware__side { display: none; }
     .bdn-aware__title { font-size: 24px; }
 }
-@media (max-width: 600px) {
-    .bdn-aware { padding: 28px 12px 32px; }
-    .bdn-aware__stage { padding: 0 44px; }
-    .bdn-aware__card { flex-basis: 100%; padding: 22px 18px 20px; }
+@media (max-width: 480px) {
+    .bdn-aware { padding: 24px 12px 28px; }
+    .bdn-aware__device { padding-top: 22px; }
+    .bdn-aware__icon { width: 72px; height: 72px; top: -38px; }
+    .bdn-aware__icon svg { width: 32px; height: 32px; }
     .bdn-aware__title { font-size: 22px; }
 }
 
