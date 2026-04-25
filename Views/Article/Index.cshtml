@@ -721,20 +721,28 @@ else if (mode == "public" || mode == "home")
             var timer = null;
             var interval = 4000;
 
-            function step(){
-                var card = cards[0];
-                if (!card) return 0;
+            function cardW(){
+                var c = cards[0];
+                return c ? c.getBoundingClientRect().width : 0;
+            }
+            function gapW(){
                 var cs = getComputedStyle(deck);
-                var gap = parseFloat(cs.columnGap || cs.gap) || 0;
-                return card.getBoundingClientRect().width + gap;
+                return parseFloat(cs.columnGap || cs.gap) || 0;
             }
-            function visibleCount(){
-                if (!viewport) return 1;
-                var s = step();
-                return s > 0 ? Math.max(1, Math.floor(viewport.clientWidth / s)) : 1;
-            }
+            function step(){ return cardW() + gapW(); }
             function render(){
-                var maxStart = Math.max(0, n - visibleCount());
+                // Đo không gian khả dụng tự nhiên: reset width trước rồi đọc clientWidth.
+                viewport.style.width = '';
+                var avail = viewport.clientWidth;
+                var s = step();
+                if (s <= 0) return;
+                var v = Math.max(1, Math.floor((avail + gapW()) / s));
+                v = Math.min(n, v);
+                var width = v * cardW() + Math.max(0, v - 1) * gapW();
+                // Co viewport cho khớp đúng số card hiển thị — không còn thừa mép phải.
+                viewport.style.width = width + 'px';
+
+                var maxStart = Math.max(0, n - v);
                 if (current < 0) current = maxStart;
                 if (current > maxStart) current = 0;
                 deck.style.transform = 'translateX(' + (-current * step()) + 'px)';

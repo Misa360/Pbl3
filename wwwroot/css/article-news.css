@@ -712,6 +712,7 @@
 .bdn-focus__viewport {
     overflow: hidden;
     width: 100%;
+    margin: 0 auto; /* khi JS thu hẹp viewport cho khớp card, cụm căn giữa */
 }
 .bdn-focus__deck {
     display: flex;

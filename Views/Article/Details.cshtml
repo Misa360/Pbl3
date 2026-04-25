@@ -49,33 +49,69 @@
                 <button type="button" class="bdn-tool" data-font="down" aria-label="Giảm cỡ chữ">−</button>
             </aside>
 
-            <!-- ╔══ MAIN ARTICLE ══╗ -->
-            <article class="bdn-detail__main" id="bdnDetailMain">
-                <h1 class="bdn-detail__title">@Model.Title</h1>
+            <!-- ╔══ MAIN ARTICLE + BÌNH LUẬN (trong cùng cột để sidebar sticky theo) ══╗ -->
+            <div class="bdn-detail__main" id="bdnDetailMain">
+                <article>
+                    <h1 class="bdn-detail__title">@Model.Title</h1>
 
-                <div class="bdn-detail__meta">
-                    <span class="bdn-detail__author">@(Model.Author?.FullName?.ToUpper() ?? "BAN BIÊN TẬP")</span>
-                    <span class="bdn-detail__dot">•</span>
-                    <time>@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</time>
-                </div>
+                    <div class="bdn-detail__meta">
+                        <span class="bdn-detail__author">@(Model.Author?.FullName?.ToUpper() ?? "BAN BIÊN TẬP")</span>
+                        <span class="bdn-detail__dot">•</span>
+                        <time>@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</time>
+                    </div>
 
-                @if (!string.IsNullOrEmpty(Model.Summary))
-                {
-                    <p class="bdn-detail__lead">@Model.Summary</p>
-                }
-
-                <div class="bdn-detail__content">
-                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    @if (!string.IsNullOrEmpty(Model.Summary))
                     {
-                        <figure class="bdn-detail__hero">
-                            <img src="@Model.ImageUrl" alt="@Model.Title" />
-                        </figure>
+                        <p class="bdn-detail__lead">@Model.Summary</p>
                     }
-                    @Html.Raw(Model.Content)
-                </div>
-            </article>
 
-            <!-- ╔══ RIGHT RAIL — ĐỌC TIẾP (related cùng chuyên mục) ══╗ -->
+                    <div class="bdn-detail__content">
+                        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                        {
+                            <figure class="bdn-detail__hero">
+                                <img src="@Model.ImageUrl" alt="@Model.Title" />
+                            </figure>
+                        }
+                        @Html.Raw(Model.Content)
+                    </div>
+                </article>
+
+                <!-- ═══ BÌNH LUẬN (ngay sau bài) ═══ -->
+                <section class="bdn-detail__comments">
+                    <h2 class="bdn-detail__comments-title">Bình luận (<span id="comment-count">@comments.Count</span>)</h2>
+                    @if (userId != null)
+                    {
+                        <form class="bdn-comment-form" id="comment-form" data-article-id="@Model.Id">
+                            <textarea placeholder="Vui lòng nhập tiếng Việt có dấu" required></textarea>
+                            <button type="submit" class="bdn-comment-submit">Gửi bình luận</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="bdn-comment-login">
+                            Vui lòng <a href="/Auth/Login">đăng nhập</a> để tham gia bình luận.
+                        </p>
+                    }
+                    <div id="comment-list" class="bdn-comment-list">
+                        @foreach (var c in comments)
+                        {
+                            var initials = c.User?.FullName?.Substring(0, 1).ToUpper() ?? "?";
+                            <div class="bdn-comment-item">
+                                <div class="bdn-comment-avatar">@initials</div>
+                                <div class="bdn-comment-body">
+                                    <div class="bdn-comment-head">
+                                        <span class="bdn-comment-name">@(c.User?.FullName ?? "Ẩn danh")</span>
+                                        <span class="bdn-comment-time">@c.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                    <div class="bdn-comment-text">@c.Content</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            </div>
+
+            <!-- ╔══ RIGHT RAIL — ĐỌC TIẾP (sticky, theo cuộn tới hết bài + bình luận) ══╗ -->
             <aside class="bdn-detail__side">
                 <div class="bdn-detail__side-box">
                     <h3 class="bdn-detail__side-title">ĐỌC TIẾP</h3>
@@ -101,7 +137,7 @@
             </aside>
         </div>
 
-        <!-- ═══ XEM THÊM [CHUYÊN MỤC] ═══ -->
+        <!-- ═══ XEM THÊM [CHUYÊN MỤC] + ĐỌC NHIỀU (ở cuối, dưới bình luận) ═══ -->
         @if (moreFromCat.Any())
         {
             <section class="bdn-detail__more">
@@ -137,40 +173,6 @@
                 </div>
             </section>
         }
-
-        <!-- ═══ BÌNH LUẬN ═══ -->
-        <section class="bdn-detail__comments">
-            <h2 class="bdn-detail__comments-title">Bình luận (<span id="comment-count">@comments.Count</span>)</h2>
-            @if (userId != null)
-            {
-                <form class="bdn-comment-form" id="comment-form" data-article-id="@Model.Id">
-                    <textarea placeholder="Vui lòng nhập tiếng Việt có dấu" required></textarea>
-                    <button type="submit" class="bdn-comment-submit">Gửi bình luận</button>
-                </form>
-            }
-            else
-            {
-                <p class="bdn-comment-login">
-                    Vui lòng <a href="/Auth/Login">đăng nhập</a> để tham gia bình luận.
-                </p>
-            }
-            <div id="comment-list" class="bdn-comment-list">
-                @foreach (var c in comments)
-                {
-                    var initials = c.User?.FullName?.Substring(0, 1).ToUpper() ?? "?";
-                    <div class="bdn-comment-item">
-                        <div class="bdn-comment-avatar">@initials</div>
-                        <div class="bdn-comment-body">
-                            <div class="bdn-comment-head">
-                                <span class="bdn-comment-name">@(c.User?.FullName ?? "Ẩn danh")</span>
-                                <span class="bdn-comment-time">@c.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                            </div>
-                            <div class="bdn-comment-text">@c.Content</div>
-                        </div>
-                    </div>
-                }
-            </div>
-        </section>
     </div>
 
     @await Html.PartialAsync("_SiteFooter")
