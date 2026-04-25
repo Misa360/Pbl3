@@ -847,10 +847,9 @@
 
 /* ── Laptop mockup ── */
 .bdn-aware__device {
-    width: 500px;
+    width: 540px;
     max-width: 100%;
     position: relative;
-    padding-top: 50px; /* chừa chỗ cho icon to nhô lên */
 }
 .bdn-aware__bezel {
     background: #2c2c2c;
@@ -862,10 +861,10 @@
 .bdn-aware__screen {
     background: #ffffff;
     border-radius: 4px;
-    min-height: 280px;
+    min-height: 360px;
     position: relative;
-    padding: 60px 24px 20px;
-    overflow: visible;
+    padding: 28px 24px 20px;
+    overflow: hidden;
 }
 /* Chân đế laptop — to hơn, dạng tablet/keyboard */
 .bdn-aware__base {
@@ -895,32 +894,31 @@
     background: rgba(0,0,0,0.08);
 }
 
-/* Icon nhô lưng chừng nửa trong nửa ngoài screen, chỉ active mới hiện */
+/* Icon nằm hoàn toàn TRONG màn hình laptop, phần trên — chỉ active mới hiện */
 .bdn-aware__icon {
-    position: absolute;
-    top: -66px; left: 50%; transform: translateX(-50%);
-    width: 132px; height: 132px;
+    position: relative;
+    margin: 0 auto -56px; /* overlap xuống panel ~56px */
+    width: 156px; height: 156px;
     display: flex; align-items: center; justify-content: center;
     transition: opacity 0.3s ease, transform 0.3s ease;
     opacity: 0;
     background: transparent;
+    z-index: 2;
 }
-.bdn-aware__icon.is-active {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-.bdn-aware__icon svg { width: 132px; height: 132px; display: block; }
+.bdn-aware__icon.is-active { opacity: 1; }
+.bdn-aware__icon svg { width: 156px; height: 156px; display: block; }
 
-/* Panel nội dung trong screen */
+/* Panel nội dung trong screen — thụt lên để icon overlap nửa trên */
 .bdn-aware__panel {
     background: #ffffff;
     border-radius: 10px;
-    padding: 24px 22px 22px;
+    padding: 78px 24px 24px; /* top padding lớn để chừa nửa icon overlap */
     text-align: center;
-    box-shadow: 0 4px 14px rgba(0,40,30,0.04);
+    box-shadow: 0 4px 14px rgba(0,40,30,0.06);
     border: 1px solid rgba(0,0,0,0.04);
     border-bottom: 4px solid var(--bdn-green);
-    margin-top: 16px;
+    position: relative;
+    z-index: 1;
 }
 .bdn-aware__panel-title {
     font-family: var(--bdn-serif); font-size: 20px; font-weight: 700;
@@ -967,9 +965,9 @@
 }
 @media (max-width: 480px) {
     .bdn-aware { padding: 24px 12px 28px; }
-    .bdn-aware__device { padding-top: 22px; }
-    .bdn-aware__icon { width: 72px; height: 72px; top: -38px; }
-    .bdn-aware__icon svg { width: 32px; height: 32px; }
+    .bdn-aware__icon { width: 110px; height: 110px; margin: 0 auto -40px; }
+    .bdn-aware__icon svg { width: 110px; height: 110px; }
+    .bdn-aware__panel { padding: 56px 18px 20px; }
     .bdn-aware__title { font-size: 22px; }
 }
 
