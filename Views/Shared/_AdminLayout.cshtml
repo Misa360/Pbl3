@@ -33,17 +33,24 @@
                         Quản lý người dùng
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="/Article/Index?mode=admin" class="@(ViewData["Title"]?.ToString() == "Quản lý bài viết - Admin" ? "active" : "")">
+                @{
+                    var titleStr = ViewData["Title"]?.ToString() ?? "";
+                    var newsTitles = new[] { "Quản lý bài viết - Admin", "Quản lý bài viết", "Thêm bài viết - Widget Builder", "Tin nổi bật - Admin", "Duyệt báo cáo sự cố - Admin" };
+                    var newsExpanded = newsTitles.Any(t => titleStr.Contains(t.Split(" - ")[0], StringComparison.OrdinalIgnoreCase))
+                                     || titleStr.Contains("Quản lý bài viết") || titleStr.Contains("Tin nổi bật") || titleStr.Contains("Viết bài mới");
+                }
+                <li class="nav-item nav-has-sub @(newsExpanded ? "open" : "")">
+                    <a href="#" class="nav-toggle" onclick="event.preventDefault(); this.parentElement.classList.toggle('open');">
                         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                         Quản lý tin tức
+                        <svg class="nav-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;"><polyline points="6 9 12 15 18 9"/></svg>
                     </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/Article/Create" class="@(ViewData["Title"]?.ToString() == "Thêm bài viết - Widget Builder" ? "active" : "")">
-                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                        Đăng bài mới
-                    </a>
+                    <ul class="nav-submenu">
+                        <li><a href="/Article/Manage" class="@(titleStr.Contains("Quản lý bài viết") ? "active" : "")">Quản lý bài viết</a></li>
+                        <li><a href="/Article/Create" class="@(titleStr.Contains("Viết bài mới") || titleStr.Contains("Thêm bài viết") ? "active" : "")">Viết bài mới</a></li>
+                        <li><a href="/Article/Manage?view=featured" class="@(titleStr.Contains("Tin nổi bật") ? "active" : "")">Tin nổi bật / Tiêu điểm</a></li>
+                        <li><a href="/Article/Manage?view=comments" class="@(titleStr.Contains("Bình luận") ? "active" : "")">Sự kiện &amp; bình luận</a></li>
+                    </ul>
                 </li>
                 <li>
                     <a href="/Admin/AlertModeration">

@@ -207,6 +207,109 @@ namespace DaNangSafeMap.Controllers
         }
 
         // ══════════════════════════════════════════════
+        // ADMIN — WP-style management page
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Manage(string status = "all", string? q = null,
+            int? categoryId = null, int page = 1, string? view = null)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            const int pageSize = 20;
+            var (items, total, cAll, cPub, cDraft, cTrash) =
+                await _articleService.GetAdminArticlesAsync(status, q, categoryId, page, pageSize);
+
+            ViewBag.Status = status;
+            ViewBag.Query = q;
+            ViewBag.CategoryId = categoryId;
+            ViewBag.View = view;
+            ViewBag.CurrentPage = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.Total = total;
+            ViewBag.CountAll = cAll;
+            ViewBag.CountPublished = cPub;
+            ViewBag.CountDraft = cDraft;
+            ViewBag.CountTrash = cTrash;
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.UserId = GetCurrentUserId();
+            ViewBag.Role = role;
+
+            return View("Manage", items);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkAction(int[] ids, string action, string? returnStatus = "all", string? q = null, int? categoryId = null)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            int affected = 0;
+            string msg = "";
+            switch (action)
+            {
+                case "trash":
+                    affected = await _articleService.BulkTrashAsync(ids ?? Array.Empty<int>());
+                    msg = $"Đã chuyển {affected} bài viết vào thùng rác.";
+                    break;
+                case "restore":
+                    affected = await _articleService.BulkRestoreAsync(ids ?? Array.Empty<int>());
+                    msg = $"Đã khôi phục {affected} bài viết.";
+                    break;
+                case "permdelete":
+                    affected = await _articleService.BulkPermanentDeleteAsync(ids ?? Array.Empty<int>());
+                    msg = $"Đã xóa vĩnh viễn {affected} bài viết.";
+                    break;
+                default:
+                    msg = "Tác vụ không hợp lệ.";
+                    break;
+            }
+            TempData["AdminMsg"] = msg;
+            return RedirectToAction("Manage", new { status = returnStatus, q, categoryId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Duplicate(int id, string? returnStatus = "all")
+        {
+            var role = GetCurrentUserRole();
+            var userId = GetCurrentUserId();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            var copy = await _articleService.DuplicateArticleAsync(id, userId.Value);
+            TempData["AdminMsg"] = copy != null
+                ? $"Đã tạo bản sao bài viết #{copy.Id}."
+                : "Không tìm thấy bài để sao chép.";
+            return RedirectToAction("Manage", new { status = returnStatus });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> QuickEdit(int id, string title, string? slug,
+            int categoryId, int statusValue, bool isFeatured, string? returnStatus = "all", string? q = null)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            var ok = await _articleService.QuickUpdateAsync(id, title, slug, categoryId, statusValue, isFeatured);
+            TempData["AdminMsg"] = ok ? "Đã lưu thay đổi nhanh." : "Không tìm thấy bài viết.";
+            return RedirectToAction("Manage", new { status = returnStatus, q });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleFeatured(int id, string? returnStatus = "all")
+        {
+            var role = GetCurrentUserRole();
+            var userId = GetCurrentUserId();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            await _articleService.ToggleFeaturedArticleAsync(id, userId.Value);
+            return RedirectToAction("Manage", new { status = returnStatus });
+        }
+
+        // ══════════════════════════════════════════════
         // SAFEWIKI
         // ══════════════════════════════════════════════
         [HttpGet]

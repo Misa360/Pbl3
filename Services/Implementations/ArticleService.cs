@@ -607,6 +607,137 @@ namespace DaNangSafeMap.Services.Implementations
         }
 
         // ══════════════════════════════════════════════
+        // ADMIN — WP-style management (list / bulk / quick-edit / duplicate)
+        // ══════════════════════════════════════════════
+
+        public async Task<(List<Article> items, int total, int countAll, int countPublished, int countDraft, int countTrash)>
+            GetAdminArticlesAsync(string status, string? q, int? categoryId, int page, int pageSize)
+        {
+            // Status counts (cùng filter q + categoryId).
+            IQueryable<Article> baseQ = _db.Articles.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var like = $"%{q.Trim()}%";
+                baseQ = baseQ.Where(a => EF.Functions.Like(a.Title, like) || EF.Functions.Like(a.Summary ?? "", like));
+            }
+            if (categoryId.HasValue && categoryId.Value > 0)
+            {
+                baseQ = baseQ.Where(a => a.CategoryId == categoryId.Value);
+            }
+
+            var countAll       = await baseQ.CountAsync(a => a.DeletedAt == null);
+            var countPublished = await baseQ.CountAsync(a => a.DeletedAt == null && a.Status == 2);
+            var countDraft     = await baseQ.CountAsync(a => a.DeletedAt == null && (a.Status == 1 || a.Status == 3));
+            var countTrash     = await baseQ.CountAsync(a => a.DeletedAt != null);
+
+            // Lọc theo tab.
+            IQueryable<Article> q2 = baseQ.Include(a => a.Category).Include(a => a.Author);
+            q2 = status switch
+            {
+                "published" => q2.Where(a => a.DeletedAt == null && a.Status == 2),
+                "draft"     => q2.Where(a => a.DeletedAt == null && (a.Status == 1 || a.Status == 3)),
+                "trash"     => q2.Where(a => a.DeletedAt != null),
+                _           => q2.Where(a => a.DeletedAt == null),
+            };
+
+            var total = await q2.CountAsync();
+
+            var items = await q2
+                .OrderByDescending(a => a.UpdatedAt ?? a.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, total, countAll, countPublished, countDraft, countTrash);
+        }
+
+        public async Task<int> BulkTrashAsync(int[] ids)
+        {
+            if (ids == null || ids.Length == 0) return 0;
+            var now = DateTime.Now;
+            var arts = await _db.Articles.Where(a => ids.Contains(a.Id) && a.DeletedAt == null).ToListAsync();
+            foreach (var a in arts) a.DeletedAt = now;
+            await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
+            return arts.Count;
+        }
+
+        public async Task<int> BulkRestoreAsync(int[] ids)
+        {
+            if (ids == null || ids.Length == 0) return 0;
+            var arts = await _db.Articles.Where(a => ids.Contains(a.Id) && a.DeletedAt != null).ToListAsync();
+            foreach (var a in arts) a.DeletedAt = null;
+            await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
+            return arts.Count;
+        }
+
+        public async Task<int> BulkPermanentDeleteAsync(int[] ids)
+        {
+            if (ids == null || ids.Length == 0) return 0;
+            var arts = await _db.Articles.Where(a => ids.Contains(a.Id)).ToListAsync();
+            // Cascade dependent rows
+            var artIds = arts.Select(a => a.Id).ToList();
+            var views = _db.ArticleViews.Where(v => artIds.Contains(v.ArticleId));
+            var comments = _db.ArticleComments.Where(c => artIds.Contains(c.ArticleId));
+            var notifs = _db.Notifications.Where(n => n.ArticleId != null && artIds.Contains(n.ArticleId.Value));
+            _db.ArticleViews.RemoveRange(views);
+            _db.ArticleComments.RemoveRange(comments);
+            _db.Notifications.RemoveRange(notifs);
+            _db.Articles.RemoveRange(arts);
+            await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
+            return arts.Count;
+        }
+
+        public async Task<Article?> DuplicateArticleAsync(int id, int currentUserId)
+        {
+            var src = await _db.Articles.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+            if (src == null) return null;
+
+            var copy = new Article
+            {
+                Title = (src.Title ?? "(không tiêu đề)") + " (bản sao)",
+                Slug = string.IsNullOrEmpty(src.Slug) ? null : (src.Slug + "-copy-" + DateTime.Now.Ticks.ToString().Substring(8)),
+                Summary = src.Summary,
+                Content = src.Content,
+                ImageUrl = src.ImageUrl,
+                VideoUrl = src.VideoUrl,
+                AudioUrl = src.AudioUrl,
+                CategoryId = src.CategoryId,
+                AuthorId = currentUserId,
+                Status = 1, // Bản nháp
+                IsFeatured = false,
+                ViewCount = 0,
+                SubCategoryName = src.SubCategoryName,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+            };
+
+            _db.Articles.Add(copy);
+            await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
+            return copy;
+        }
+
+        public async Task<bool> QuickUpdateAsync(int id, string title, string? slug, int categoryId, int status, bool isFeatured)
+        {
+            var article = await _db.Articles.FirstOrDefaultAsync(a => a.Id == id);
+            if (article == null) return false;
+
+            if (!string.IsNullOrWhiteSpace(title)) article.Title = title.Trim();
+            article.Slug = string.IsNullOrWhiteSpace(slug) ? null : slug.Trim();
+            if (categoryId > 0) article.CategoryId = categoryId;
+            if (status >= 1 && status <= 3) article.Status = status;
+            article.IsFeatured = isFeatured;
+            article.UpdatedAt = DateTime.Now;
+
+            await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
+            return true;
+        }
+
+        // ══════════════════════════════════════════════
         // CATEGORIES
         // ══════════════════════════════════════════════
 

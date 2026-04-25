@@ -1,0 +1,325 @@
+@model List<DaNangSafeMap.Models.Entities.Article>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý bài viết";
+
+    var status = ViewBag.Status as string ?? "all";
+    var query = ViewBag.Query as string ?? "";
+    var catId = ViewBag.CategoryId as int?;
+    var page = (int)(ViewBag.CurrentPage ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 20);
+    var total = (int)(ViewBag.Total ?? 0);
+    var cAll = (int)(ViewBag.CountAll ?? 0);
+    var cPub = (int)(ViewBag.CountPublished ?? 0);
+    var cDraft = (int)(ViewBag.CountDraft ?? 0);
+    var cTrash = (int)(ViewBag.CountTrash ?? 0);
+    var cats = ViewBag.Categories as List<DaNangSafeMap.Models.Entities.Category> ?? new();
+    var msg = TempData["AdminMsg"] as string;
+
+    string TabHref(string s) => $"/Article/Manage?status={s}{(string.IsNullOrEmpty(query) ? "" : "&q=" + Uri.EscapeDataString(query))}{(catId.HasValue ? "&categoryId=" + catId : "")}";
+
+    string StatusLabel(int? st)
+    {
+        return st switch
+        {
+            1 => "Bản nháp",
+            2 => "Đã xuất bản",
+            3 => "Bị từ chối",
+            _ => "—"
+        };
+    }
+    string StatusCss(int? st)
+    {
+        return st switch
+        {
+            1 => "wp-status wp-status--draft",
+            2 => "wp-status wp-status--pub",
+            3 => "wp-status wp-status--rej",
+            _ => "wp-status"
+        };
+    }
+
+    var totalPages = (int)Math.Ceiling((double)total / pageSize);
+    if (totalPages < 1) totalPages = 1;
+}
+
+<link rel="stylesheet" href="~/css/admin-posts.css" asp-append-version="true" />
+
+<div class="wp-page">
+    <div class="wp-page__head">
+        <h1 class="wp-page__title">Bài viết
+            <a class="wp-add-new" href="/Article/Create">Viết bài mới</a>
+        </h1>
+        @if (!string.IsNullOrEmpty(msg))
+        {
+            <div class="wp-flash">@msg</div>
+        }
+    </div>
+
+    <!-- Status tabs -->
+    <ul class="wp-subtabs">
+        <li><a href="@TabHref("all")" class="@(status == "all" ? "current" : "")">Tất cả <span class="count">(@cAll)</span></a></li>
+        <li><a href="@TabHref("published")" class="@(status == "published" ? "current" : "")">Đã xuất bản <span class="count">(@cPub)</span></a></li>
+        <li><a href="@TabHref("draft")" class="@(status == "draft" ? "current" : "")">Bản nháp <span class="count">(@cDraft)</span></a></li>
+        <li><a href="@TabHref("trash")" class="@(status == "trash" ? "current" : "")">Thùng rác <span class="count">(@cTrash)</span></a></li>
+    </ul>
+
+    <!-- Search box -->
+    <form method="get" action="/Article/Manage" class="wp-search">
+        <input type="hidden" name="status" value="@status" />
+        @if (catId.HasValue) { <input type="hidden" name="categoryId" value="@catId" /> }
+        <input type="search" name="q" value="@query" placeholder="Tìm theo tiêu đề bài viết..." />
+        <button type="submit" class="wp-btn">Tìm các bài viết</button>
+    </form>
+
+    <!-- Bulk actions toolbar -->
+    <form method="post" action="/Article/BulkAction" id="bulkForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="returnStatus" value="@status" />
+        @if (!string.IsNullOrEmpty(query)) { <input type="hidden" name="q" value="@query" /> }
+        @if (catId.HasValue) { <input type="hidden" name="categoryId" value="@catId" /> }
+
+        <div class="wp-tablenav top">
+            <div class="wp-bulk">
+                <select name="action" class="wp-select">
+                    <option value="">Tác vụ</option>
+                    @if (status == "trash")
+                    {
+                        <option value="restore">Phục hồi</option>
+                        <option value="permdelete">Xóa vĩnh viễn</option>
+                    }
+                    else
+                    {
+                        <option value="trash">Bỏ vào thùng rác</option>
+                    }
+                </select>
+                <button type="submit" class="wp-btn">Áp dụng</button>
+            </div>
+
+            <div class="wp-filters">
+                <select name="categoryId" form="filterForm" class="wp-select" onchange="document.getElementById('filterForm').submit();">
+                    <option value="">Tất cả chuyên mục</option>
+                    @foreach (var c in cats)
+                    {
+                        <option value="@c.Id" selected="@(catId == c.Id)">@c.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="wp-pagecount">@total mục</div>
+        </div>
+
+        <table class="wp-table">
+            <thead>
+                <tr>
+                    <td class="wp-col-cb"><input type="checkbox" id="selAll" /></td>
+                    <th class="wp-col-title">Tiêu đề</th>
+                    <th class="wp-col-author">Tác giả</th>
+                    <th class="wp-col-cat">Chuyên mục</th>
+                    <th class="wp-col-status">Trạng thái</th>
+                    <th class="wp-col-views">Lượt xem</th>
+                    <th class="wp-col-time">Thời gian</th>
+                    <th class="wp-col-feat" title="Tin nổi bật / tiêu điểm">★</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="8" class="wp-empty">Không có bài viết nào.</td></tr>
+                }
+                @foreach (var a in Model)
+                {
+                    <tr class="wp-row" id="row-@a.Id">
+                        <td class="wp-col-cb"><input type="checkbox" name="ids" value="@a.Id" class="wp-rowcb" /></td>
+                        <td class="wp-col-title">
+                            <strong>
+                                <a href="/Article/Details/@a.Id" class="wp-row-title">@(string.IsNullOrWhiteSpace(a.Title) ? "(không tiêu đề)" : a.Title)</a>
+                                @if (a.IsFeatured == true) { <span class="wp-pill wp-pill--feat">Nổi bật</span> }
+                                @if (a.Status == 1) { <span class="wp-pill">— Bản nháp</span> }
+                                @if (a.Status == 3) { <span class="wp-pill wp-pill--rej">— Bị từ chối</span> }
+                            </strong>
+                            <div class="wp-row-actions">
+                                <span><a href="/Article/Edit/@a.Id">Chỉnh sửa</a> | </span>
+                                <span><a href="javascript:void(0)" onclick="wpQuickEdit(@a.Id)">Sửa nhanh</a> | </span>
+                                @if (status == "trash")
+                                {
+                                    <span><a href="javascript:void(0)" onclick="wpRestore(@a.Id)">Phục hồi</a> | </span>
+                                    <span><a href="javascript:void(0)" class="text-danger" onclick="wpPermDelete(@a.Id)">Xóa vĩnh viễn</a> | </span>
+                                }
+                                else
+                                {
+                                    <span><a href="javascript:void(0)" class="text-danger" onclick="wpTrash(@a.Id)">Xóa tạm</a> | </span>
+                                }
+                                <span><a href="/Article/Details/@a.Id" target="_blank">Xem</a> | </span>
+                                <span><a href="javascript:void(0)" onclick="wpDuplicate(@a.Id)">Sao chép</a></span>
+                            </div>
+
+                            <!-- Quick edit form (hidden) -->
+                            <div class="wp-quickedit" id="qe-@a.Id" style="display:none;">
+                                <form method="post" action="/Article/QuickEdit">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@a.Id" />
+                                    <input type="hidden" name="returnStatus" value="@status" />
+                                    <div class="wp-qe-row">
+                                        <label>Tiêu đề</label>
+                                        <input type="text" name="title" value="@a.Title" required />
+                                    </div>
+                                    <div class="wp-qe-row">
+                                        <label>Đường dẫn (slug)</label>
+                                        <input type="text" name="slug" value="@(a.Slug ?? "")" />
+                                    </div>
+                                    <div class="wp-qe-row">
+                                        <label>Chuyên mục</label>
+                                        <select name="categoryId">
+                                            @foreach (var c in cats)
+                                            {
+                                                <option value="@c.Id" selected="@(c.Id == a.CategoryId)">@c.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="wp-qe-row">
+                                        <label>Trạng thái</label>
+                                        <select name="statusValue">
+                                            <option value="1" selected="@(a.Status == 1)">Bản nháp</option>
+                                            <option value="2" selected="@(a.Status == 2)">Đã xuất bản</option>
+                                            <option value="3" selected="@(a.Status == 3)">Bị từ chối</option>
+                                        </select>
+                                    </div>
+                                    <div class="wp-qe-row">
+                                        <label>
+                                            <input type="checkbox" name="isFeatured" value="true" checked="@(a.IsFeatured == true)" />
+                                            Đặt làm tin nổi bật / tiêu điểm
+                                        </label>
+                                    </div>
+                                    <div class="wp-qe-actions">
+                                        <button type="submit" class="wp-btn wp-btn--primary">Cập nhật</button>
+                                        <button type="button" class="wp-btn" onclick="document.getElementById('qe-@a.Id').style.display='none'">Hủy</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </td>
+                        <td class="wp-col-author">@(a.Author?.FullName ?? "—")</td>
+                        <td class="wp-col-cat">@(a.Category?.Name ?? "—")</td>
+                        <td class="wp-col-status"><span class="@StatusCss(a.Status)">@StatusLabel(a.Status)</span></td>
+                        <td class="wp-col-views">@((a.ViewCount ?? 0).ToString("N0"))</td>
+                        <td class="wp-col-time">
+                            @(status == "trash"
+                                ? "Đã xóa " + (a.DeletedAt?.ToString("dd/MM/yyyy") ?? "")
+                                : (a.Status == 2 ? "Đã xuất bản " : "Sửa đổi lần cuối ") + (a.UpdatedAt ?? a.CreatedAt)?.ToString("dd/MM/yyyy"))
+                        </td>
+                        <td class="wp-col-feat">
+                            <button type="button" class="wp-star @(a.IsFeatured == true ? "on" : "")"
+                                    title="@(a.IsFeatured == true ? "Bỏ nổi bật" : "Đặt làm nổi bật / tiêu điểm")"
+                                    onclick="wpToggleFeatured(@a.Id)">★</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="wp-col-cb"><input type="checkbox" class="selAll-foot" onchange="document.getElementById('selAll').checked=this.checked; toggleAll(this.checked);" /></td>
+                    <th>Tiêu đề</th>
+                    <th>Tác giả</th>
+                    <th>Chuyên mục</th>
+                    <th>Trạng thái</th>
+                    <th>Lượt xem</th>
+                    <th>Thời gian</th>
+                    <th>★</th>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="wp-tablenav bottom">
+            <div class="wp-bulk">
+                <select name="action2" class="wp-select" onchange="this.form.querySelector('select[name=action]').value=this.value">
+                    <option value="">Tác vụ</option>
+                    @if (status == "trash")
+                    {
+                        <option value="restore">Phục hồi</option>
+                        <option value="permdelete">Xóa vĩnh viễn</option>
+                    }
+                    else
+                    {
+                        <option value="trash">Bỏ vào thùng rác</option>
+                    }
+                </select>
+                <button type="submit" class="wp-btn">Áp dụng</button>
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <nav class="wp-pager">
+                    @for (int p = 1; p <= totalPages; p++)
+                    {
+                        <a href="?status=@status&q=@query&page=@p" class="@(p == page ? "current" : "")">@p</a>
+                    }
+                </nav>
+            }
+            <div class="wp-pagecount">@total mục</div>
+        </div>
+    </form>
+
+    <!-- Filter form (separate so it does GET ngược về Manage) -->
+    <form method="get" action="/Article/Manage" id="filterForm" style="display:none;">
+        <input type="hidden" name="status" value="@status" />
+        @if (!string.IsNullOrEmpty(query)) { <input type="hidden" name="q" value="@query" /> }
+    </form>
+
+    <!-- Single-row action forms -->
+    <form method="post" action="/Article/Duplicate" id="dupForm" style="display:none;">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" id="dupId" />
+        <input type="hidden" name="returnStatus" value="@status" />
+    </form>
+    <form method="post" action="/Article/BulkAction" id="singleActionForm" style="display:none;">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ids" id="singleId" />
+        <input type="hidden" name="action" id="singleAction" />
+        <input type="hidden" name="returnStatus" value="@status" />
+    </form>
+    <form method="post" action="/Article/ToggleFeatured" id="featForm" style="display:none;">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" id="featId" />
+        <input type="hidden" name="returnStatus" value="@status" />
+    </form>
+</div>
+
+<script>
+    // Select-all
+    (function () {
+        var sel = document.getElementById('selAll');
+        if (sel) sel.addEventListener('change', function () { toggleAll(this.checked); });
+    })();
+    function toggleAll(v) {
+        document.querySelectorAll('.wp-rowcb').forEach(function (c) { c.checked = v; });
+    }
+
+    // Quick edit toggle
+    function wpQuickEdit(id) {
+        var n = document.getElementById('qe-' + id);
+        if (!n) return;
+        document.querySelectorAll('.wp-quickedit').forEach(function (x) { if (x.id !== ('qe-' + id)) x.style.display = 'none'; });
+        n.style.display = (n.style.display === 'none' || !n.style.display) ? 'block' : 'none';
+    }
+
+    function wpDuplicate(id) {
+        if (!confirm('Tạo một bản sao bài viết này?')) return;
+        document.getElementById('dupId').value = id;
+        document.getElementById('dupForm').submit();
+    }
+
+    function _singleAction(id, action, confirmMsg) {
+        if (confirmMsg && !confirm(confirmMsg)) return;
+        document.getElementById('singleId').value = id;
+        document.getElementById('singleAction').value = action;
+        document.getElementById('singleActionForm').submit();
+    }
+    function wpTrash(id) { _singleAction(id, 'trash', 'Bỏ bài viết này vào thùng rác?'); }
+    function wpRestore(id) { _singleAction(id, 'restore', null); }
+    function wpPermDelete(id) { _singleAction(id, 'permdelete', 'Xóa VĨNH VIỄN bài viết này? Hành động không thể hoàn tác.'); }
+
+    function wpToggleFeatured(id) {
+        document.getElementById('featId').value = id;
+        document.getElementById('featForm').submit();
+    }
+</script>
