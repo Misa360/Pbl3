@@ -331,6 +331,31 @@ namespace DaNangSafeMap.Services.Implementations
             var article = await _db.Articles.FindAsync(id);
             if (article == null) return;
 
+            // Anti-spam: chỉ đếm 1 lượt xem cho cùng (user hoặc IP, bài) trong 30 phút
+            var cutoff = DateTime.Now.AddMinutes(-30);
+            bool recentlyViewed;
+            if (userId.HasValue)
+            {
+                recentlyViewed = await _db.ArticleViews
+                    .AnyAsync(v => v.ArticleId == id
+                                && v.UserId == userId
+                                && v.ViewedAt != null && v.ViewedAt >= cutoff);
+            }
+            else if (!string.IsNullOrEmpty(ipAddress))
+            {
+                recentlyViewed = await _db.ArticleViews
+                    .AnyAsync(v => v.ArticleId == id
+                                && v.UserId == null
+                                && v.IpAddress == ipAddress
+                                && v.ViewedAt != null && v.ViewedAt >= cutoff);
+            }
+            else
+            {
+                recentlyViewed = false;
+            }
+
+            if (recentlyViewed) return;
+
             article.ViewCount = (article.ViewCount ?? 0) + 1;
 
             _db.ArticleViews.Add(new ArticleView

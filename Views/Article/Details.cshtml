@@ -75,6 +75,14 @@
                         <span class="bdn-detail__author">@(Model.Author?.FullName?.ToUpper() ?? "BAN BIÊN TẬP")</span>
                         <span class="bdn-detail__dot">•</span>
                         <time>@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</time>
+                        <span class="bdn-detail__dot">•</span>
+                        <span class="bdn-detail__views" title="Lượt xem">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            @((Model.ViewCount ?? 0).ToString("N0")) lượt xem
+                        </span>
                     </div>
 
                     @if (!string.IsNullOrEmpty(Model.Summary))
@@ -182,7 +190,10 @@
                                 var mv = mostViewed[i];
                                 <li>
                                     <span class="bdn-detail__rank-num">@(i + 1)</span>
-                                    <a href="/Article/Details/@mv.Id">@mv.Title</a>
+                                    <div class="bdn-detail__rank-item">
+                                        <a href="/Article/Details/@mv.Id">@mv.Title</a>
+                                        <span class="bdn-detail__rank-views">@((mv.ViewCount ?? 0).ToString("N0")) lượt xem</span>
+                                    </div>
                                 </li>
                             }
                         </ol>

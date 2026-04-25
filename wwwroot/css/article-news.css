@@ -1042,6 +1042,8 @@
 }
 .bdn-detail__author { color: var(--bdn-green); font-weight: 700; letter-spacing: 0.5px; }
 .bdn-detail__dot { margin: 0 8px; }
+.bdn-detail__views { display: inline-flex; align-items: center; gap: 5px; color: var(--bdn-muted); }
+.bdn-detail__views svg { color: var(--bdn-green); flex-shrink: 0; }
 .bdn-detail__lead {
     font-family: var(--bdn-serif); font-size: 18px; line-height: 1.55;
     color: #222; font-weight: 600; margin: 0 0 22px;
@@ -1165,6 +1167,8 @@
     font-weight: 600; color: var(--bdn-ink); text-decoration: none;
 }
 .bdn-detail__rank-list a:hover { color: var(--bdn-green); }
+.bdn-detail__rank-item { display: flex; flex-direction: column; gap: 2px; }
+.bdn-detail__rank-views { font-size: 11.5px; color: var(--bdn-muted); }
 
 /* Comments */
 .bdn-detail__comments { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--bdn-line); }
