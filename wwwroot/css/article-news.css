@@ -779,9 +779,8 @@
 .bdn-aware {
     margin: 48px auto 40px;
     max-width: var(--bdn-container-w);
-    padding: 32px 24px 36px;
-    background: #f3f8fb;
-    border-radius: 4px;
+    padding: 24px 24px 36px;
+    background: transparent;
 }
 .bdn-aware__head { text-align: center; margin-bottom: 28px; }
 .bdn-aware__eyebrow {
@@ -811,11 +810,12 @@
     margin: 0 auto;
 }
 
-/* Side cards (text only, ngoài laptop) */
+/* Side cards (text only, ngoài laptop) — nền xanh nhạt để nổi trên page bg */
 .bdn-aware__side {
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 32px 18px;
+    background: #e8f5ee;
+    border: 1px solid rgba(0,105,92,0.10);
+    border-radius: 14px;
+    padding: 36px 18px;
     text-align: center;
     font-family: var(--bdn-serif);
     font-size: 17px; font-weight: 700;
@@ -823,9 +823,13 @@
     line-height: 1.35;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,40,30,0.04);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
 }
-.bdn-aware__side:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,40,30,0.08); }
+.bdn-aware__side:hover {
+    transform: translateY(-1px);
+    background: #d9eee2;
+    box-shadow: 0 6px 18px rgba(0,40,30,0.08);
+}
 
 /* Arrow buttons — vuông mảnh giữa laptop và side card */
 .bdn-aware__arrow {
@@ -843,68 +847,80 @@
 
 /* ── Laptop mockup ── */
 .bdn-aware__device {
-    width: 480px;
+    width: 500px;
     max-width: 100%;
     position: relative;
-    padding-top: 26px; /* chừa chỗ cho icon nhô lên */
+    padding-top: 50px; /* chừa chỗ cho icon to nhô lên */
 }
 .bdn-aware__bezel {
     background: #2c2c2c;
-    border-radius: 14px;
-    padding: 14px 14px 16px;
+    border-radius: 14px 14px 4px 4px;
+    padding: 14px 14px 14px;
     box-shadow: 0 18px 32px rgba(0,0,0,0.10);
     position: relative;
 }
 .bdn-aware__screen {
     background: #ffffff;
-    border-radius: 6px;
-    min-height: 320px;
+    border-radius: 4px;
+    min-height: 280px;
     position: relative;
-    padding: 26px 22px 14px;
+    padding: 60px 24px 20px;
     overflow: visible;
 }
+/* Chân đế laptop — to hơn, dạng tablet/keyboard */
 .bdn-aware__base {
-    width: 100%;
-    height: 14px;
-    background: #b9b9b9;
-    border-radius: 0 0 18px 18px;
-    margin: 0 auto;
+    width: 108%;
+    margin: 0 -4%;
+    height: 28px;
+    background: linear-gradient(180deg, #d4d4d4 0%, #a6a6a6 100%);
+    border-radius: 0 0 14px 14px;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.10);
 }
 .bdn-aware__base::before {
+    /* notch trackpad ở giữa */
     content: '';
-    display: block;
-    width: 78px; height: 6px;
-    background: #cfcfcf;
-    border-radius: 0 0 8px 8px;
-    margin: 0 auto;
+    position: absolute;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 8px;
+    background: #8c8c8c;
+    border-radius: 0 0 10px 10px;
+}
+.bdn-aware__base::after {
+    /* gân ngang trên bàn phím */
+    content: '';
+    position: absolute;
+    top: 6px; left: 12%; right: 12%;
+    height: 1px;
+    background: rgba(0,0,0,0.08);
 }
 
 /* Icon nhô lưng chừng nửa trong nửa ngoài screen, chỉ active mới hiện */
 .bdn-aware__icon {
     position: absolute;
-    top: -52px; left: 50%; transform: translateX(-50%);
-    width: 96px; height: 96px;
-    border-radius: 50%;
+    top: -66px; left: 50%; transform: translateX(-50%);
+    width: 132px; height: 132px;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
     transition: opacity 0.3s ease, transform 0.3s ease;
     opacity: 0;
+    background: transparent;
 }
 .bdn-aware__icon.is-active {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
-.bdn-aware__icon svg { width: 44px; height: 44px; }
+.bdn-aware__icon svg { width: 132px; height: 132px; display: block; }
 
 /* Panel nội dung trong screen */
 .bdn-aware__panel {
     background: #ffffff;
-    border-radius: 8px;
-    padding: 28px 22px 26px;
+    border-radius: 10px;
+    padding: 24px 22px 22px;
     text-align: center;
-    box-shadow: 0 6px 16px rgba(0,40,30,0.06);
+    box-shadow: 0 4px 14px rgba(0,40,30,0.04);
+    border: 1px solid rgba(0,0,0,0.04);
     border-bottom: 4px solid var(--bdn-green);
-    margin-top: 32px;
+    margin-top: 16px;
 }
 .bdn-aware__panel-title {
     font-family: var(--bdn-serif); font-size: 20px; font-weight: 700;
@@ -914,10 +930,10 @@
     margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--bdn-lead);
 }
 
-/* Dot indicators in laptop screen base */
+/* Dot indicators ở DƯỚI chân đế laptop, ngoài màn hình */
 .bdn-aware__dots {
     display: flex; justify-content: center; gap: 8px;
-    margin-top: 20px;
+    margin-top: 18px;
 }
 .bdn-aware__dot {
     width: 8px; height: 8px; border-radius: 50%;

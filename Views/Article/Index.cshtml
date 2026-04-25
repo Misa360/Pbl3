@@ -556,10 +556,10 @@ else if (mode == "public" || mode == "home")
                                     <h3 class="bdn-aware__panel-title" id="bdnAwareTitle"></h3>
                                     <p class="bdn-aware__panel-text" id="bdnAwareText"></p>
                                 </div>
-                                <div class="bdn-aware__dots" id="bdnAwareDots"></div>
                             </div>
                         </div>
                         <div class="bdn-aware__base"></div>
+                        <div class="bdn-aware__dots" id="bdnAwareDots"></div>
                     </div>
 
                     <button type="button" class="bdn-aware__arrow bdn-aware__arrow--next" aria-label="Sau">
@@ -568,26 +568,89 @@ else if (mode == "public" || mode == "home")
                     <div class="bdn-aware__side bdn-aware__side--next" id="bdnAwareNext"></div>
                 </div>
 
-                @* Kho dữ liệu nguồn — JS đọc từ đây để cập nhật màn hình laptop. *@
-                <div class="bdn-aware__store" id="bdnAwareStore" hidden>
-                    <template data-title="Duyệt web an toàn" data-text="Cảnh báo khi truy cập trang web có dấu hiệu lừa đảo, mã độc hoặc giả mạo thương hiệu." data-bg="#e8f5e9" data-color="#2e7d32">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-                    </template>
-                    <template data-title="Màn hình cảnh báo" data-text="Hệ thống tự động hiện cửa sổ cảnh báo khi bạn truy cập trang web có độ an toàn kém." data-bg="#fff3e0" data-color="#e65100">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-                    </template>
-                    <template data-title="Kiểm tra liên kết" data-text="Chặn các đường link giả mạo, chứa mã độc hoặc dẫn tới website đã bị báo cáo lừa đảo." data-bg="#e3f2fd" data-color="#1565c0">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>
-                    </template>
-                    <template data-title="Bảo mật tài khoản" data-text="Bật xác thực hai lớp, đặt mật khẩu mạnh và không chia sẻ OTP cho bất kỳ ai." data-bg="#f3e5f5" data-color="#6a1b9a">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    </template>
-                    <template data-title="Cảnh giác cuộc gọi giả mạo" data-text="Đối tượng giả danh công an, ngân hàng, viễn thông để chiếm đoạt tài sản — luôn kiểm tra lại qua kênh chính thức." data-bg="#fce4ec" data-color="#ad1457">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    </template>
-                    <template data-title="Báo cáo nhanh 24/7" data-text="Khi phát hiện dấu hiệu lừa đảo, báo ngay cho cơ quan chức năng qua tổng đài 113 hoặc cổng SafeMap." data-bg="#e0f7fa" data-color="#006064">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg>
-                    </template>
+                @* Kho dữ liệu nguồn — JS đọc từ đây để cập nhật màn hình laptop.
+                   Mỗi logo là một composite SVG 132x132 với halo nền + biểu tượng chính + accent. *@
+                <div class="bdn-aware__store" id="bdnAwareStore" style="display:none">
+                    <div data-title="Duyệt web an toàn" data-text="Cảnh báo khi truy cập trang web có dấu hiệu lừa đảo, mã độc hoặc giả mạo thương hiệu.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="aw1g" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#43a047"/><stop offset="1" stop-color="#1b5e20"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="66" cy="66" r="56" fill="#e8f5e9"/>
+                            <path d="M66 24l30 12v22c0 22-14 38-30 46-16-8-30-24-30-46V36z" fill="url(#aw1g)"/>
+                            <circle cx="66" cy="64" r="20" fill="#ffffff" opacity="0.95"/>
+                            <path d="M55 64l8 8 14-16" stroke="#1b5e20" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </svg>
+                    </div>
+                    <div data-title="Màn hình cảnh báo" data-text="Hệ thống tự động hiện cửa sổ cảnh báo khi bạn truy cập trang web có độ an toàn kém.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="66" cy="66" r="56" fill="#fff3e0"/>
+                            <rect x="22" y="34" width="88" height="58" rx="6" fill="#37474f"/>
+                            <rect x="28" y="40" width="76" height="46" rx="2" fill="#fafafa"/>
+                            <path d="M66 50l16 28H50z" fill="#ff9800"/>
+                            <rect x="64" y="58" width="4" height="10" rx="1" fill="#fff"/>
+                            <circle cx="66" cy="73" r="2" fill="#fff"/>
+                            <rect x="56" y="98" width="20" height="6" rx="2" fill="#37474f"/>
+                            <rect x="46" y="104" width="40" height="4" rx="2" fill="#90a4ae"/>
+                        </svg>
+                    </div>
+                    <div data-title="Kiểm tra liên kết" data-text="Chặn các đường link giả mạo, chứa mã độc hoặc dẫn tới website đã bị báo cáo lừa đảo.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="66" cy="66" r="56" fill="#e3f2fd"/>
+                            <path d="M48 66c0-8 6-14 14-14h10v10H62a4 4 0 0 0 0 8h10v10H62c-8 0-14-6-14-14z" fill="#1565c0"/>
+                            <path d="M84 66c0 8-6 14-14 14H60V70h10a4 4 0 0 0 0-8H60V52h10c8 0 14 6 14 14z" fill="#1976d2"/>
+                            <rect x="58" y="62" width="16" height="8" fill="#0d47a1"/>
+                            <circle cx="98" cy="42" r="14" fill="#ef5350"/>
+                            <path d="M92 36l12 12M104 36l-12 12" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div data-title="Bảo mật tài khoản" data-text="Bật xác thực hai lớp, đặt mật khẩu mạnh và không chia sẻ OTP cho bất kỳ ai.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="aw4g" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#7b1fa2"/><stop offset="1" stop-color="#4a148c"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="66" cy="66" r="56" fill="#f3e5f5"/>
+                            <path d="M66 22l34 14v22c0 24-16 42-34 50-18-8-34-26-34-50V36z" fill="url(#aw4g)"/>
+                            <rect x="48" y="62" width="36" height="28" rx="4" fill="#fff"/>
+                            <path d="M54 62v-8a12 12 0 0 1 24 0v8" stroke="#fff" stroke-width="4" fill="none"/>
+                            <circle cx="66" cy="74" r="3" fill="#7b1fa2"/>
+                            <rect x="64.5" y="74" width="3" height="8" fill="#7b1fa2"/>
+                        </svg>
+                    </div>
+                    <div data-title="Cảnh giác cuộc gọi giả mạo" data-text="Đối tượng giả danh công an, ngân hàng, viễn thông để chiếm đoạt tài sản — luôn kiểm tra lại qua kênh chính thức.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="66" cy="66" r="56" fill="#fce4ec"/>
+                            <path d="M44 28h22a8 8 0 0 1 8 8v60a8 8 0 0 1-8 8H44a8 8 0 0 1-8-8V36a8 8 0 0 1 8-8z" fill="#37474f"/>
+                            <rect x="40" y="36" width="30" height="50" rx="2" fill="#cfd8dc"/>
+                            <circle cx="55" cy="96" r="4" fill="#90a4ae"/>
+                            <path d="M55 50l10 18H45z" fill="#e53935"/>
+                            <rect x="53" y="55" width="4" height="8" rx="1" fill="#fff"/>
+                            <circle cx="55" cy="65" r="2" fill="#fff"/>
+                            <path d="M82 40c4 0 8 4 8 8M82 32c8 0 16 8 16 16M82 24c12 0 24 12 24 24" stroke="#e53935" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div data-title="Báo cáo nhanh 24/7" data-text="Khi phát hiện dấu hiệu lừa đảo, báo ngay cho cơ quan chức năng qua tổng đài 113 hoặc cổng SafeMap.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="aw6g" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0" stop-color="#00897b"/><stop offset="1" stop-color="#004d40"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="66" cy="66" r="56" fill="#e0f7fa"/>
+                            <circle cx="66" cy="66" r="38" fill="url(#aw6g)"/>
+                            <circle cx="66" cy="66" r="32" fill="#ffffff"/>
+                            <path d="M66 46v22l14 8" stroke="#004d40" stroke-width="5" stroke-linecap="round" fill="none"/>
+                            <text x="66" y="100" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="800" fill="#004d40">24/7</text>
+                            <circle cx="66" cy="40" r="3" fill="#004d40"/>
+                            <circle cx="92" cy="66" r="3" fill="#004d40"/>
+                            <circle cx="66" cy="92" r="3" fill="#004d40"/>
+                            <circle cx="40" cy="66" r="3" fill="#004d40"/>
+                        </svg>
+                    </div>
                 </div>
             </section>
 
@@ -843,14 +906,12 @@ else if (mode == "public" || mode == "home")
             var nextSide = document.getElementById('bdnAwareNext');
             if (!rig || !store) return;
 
-            var tpls = Array.prototype.slice.call(store.querySelectorAll('template'));
-            var items = tpls.map(function(t){
+            var sources = Array.prototype.slice.call(store.querySelectorAll(':scope > div[data-title]'));
+            var items = sources.map(function(d){
                 return {
-                    title: t.getAttribute('data-title') || '',
-                    text:  t.getAttribute('data-text')  || '',
-                    bg:    t.getAttribute('data-bg')    || '#e8f5e9',
-                    color: t.getAttribute('data-color') || '#2e7d32',
-                    svg:   t.innerHTML.trim()
+                    title: d.getAttribute('data-title') || '',
+                    text:  d.getAttribute('data-text')  || '',
+                    svg:   d.innerHTML.trim()
                 };
             });
             var n = items.length;
@@ -885,8 +946,6 @@ else if (mode == "public" || mode == "home")
                 iconEl.classList.add('is-fading');
 
                 window.setTimeout(function(){
-                    iconEl.style.background = item.bg;
-                    iconEl.style.color = item.color;
                     iconEl.innerHTML = item.svg;
                     titleEl.textContent = item.title;
                     textEl.textContent  = item.text;
