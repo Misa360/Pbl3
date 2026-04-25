@@ -219,6 +219,20 @@
             }).catch(function(){ /* not logged in yet */ });
         }
         window.__dsmBellInit = refresh;
+        // Auto-refresh ngay khi load (không cần đợi bấm nút) để hiện badge số chưa đọc.
+        try {
+            var raw = localStorage.getItem('user');
+            var u = raw ? JSON.parse(raw) : null;
+            if (u && (u.fullName || u.email)) refresh();
+        } catch (e) { /* ignore */ }
+        // Poll mỗi 60s để badge cập nhật realtime.
+        setInterval(function(){
+            try {
+                var raw = localStorage.getItem('user');
+                var u = raw ? JSON.parse(raw) : null;
+                if (u && (u.fullName || u.email)) refresh();
+            } catch (e) { /* ignore */ }
+        }, 60000);
         btn.addEventListener('click', function(e){
             e.stopPropagation();
             dropdown.classList.toggle('open');

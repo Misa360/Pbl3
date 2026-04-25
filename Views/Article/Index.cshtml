@@ -408,8 +408,10 @@ else if (mode == "public" || mode == "home")
             }
             var rightMain = topSide.FirstOrDefault();
             var rightDuo  = latest.Where(x => x != topHero && !topSide.Contains(x)).Take(2).ToList();
-            var eventItem = featured.Skip(1).FirstOrDefault(x => x != topHero && !topSide.Contains(x))
-                          ?? latest.Skip(1).FirstOrDefault(x => x != topHero && !topSide.Contains(x) && !rightDuo.Contains(x));
+            var eventItems = featured.Concat(latest)
+                                     .Where(x => x != topHero && !topSide.Contains(x))
+                                     .GroupBy(x => x.Id).Select(g => g.First())
+                                     .Take(5).ToList();
             var focusList = featured.Where(x => x != topHero).Concat(mostViewed).Concat(latest)
                 .GroupBy(x => x.Id).Select(g => g.First()).Take(12).ToList();
 
@@ -467,27 +469,36 @@ else if (mode == "public" || mode == "home")
                             }
                         </div>
                     }
-                    @if (eventItem != null)
+                    @if (eventItems.Any())
                     {
-                        <div class="bdn-event">
+                        <div class="bdn-event" id="bdnEvent" data-count="@eventItems.Count">
                             <header class="bdn-event__head">
                                 <span class="bdn-event__label">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                     Sự kiện &amp; bình luận
                                 </span>
-                                <span class="bdn-event__nav"><button type="button" class="bdn-event__btn" aria-label="Trước">‹</button><button type="button" class="bdn-event__btn" aria-label="Sau">›</button></span>
+                                <span class="bdn-event__nav">
+                                    <button type="button" class="bdn-event__btn" id="bdnEventPrev" aria-label="Trước">‹</button>
+                                    <button type="button" class="bdn-event__btn" id="bdnEventNext" aria-label="Sau">›</button>
+                                </span>
                             </header>
-                            <a class="bdn-event__body" href="/Article/Details/@eventItem.Id">
-                                <h4 class="bdn-event__title">@eventItem.Title</h4>
-                                @if (!string.IsNullOrEmpty(eventItem.Summary))
+                            <div class="bdn-event__track">
+                                @for (int ei = 0; ei < eventItems.Count; ei++)
                                 {
-                                    <p class="bdn-event__sum">@eventItem.Summary</p>
+                                    var e = eventItems[ei];
+                                    <a class="bdn-event__body @(ei == 0 ? "is-active" : "")" href="/Article/Details/@e.Id" data-index="@ei">
+                                        <h4 class="bdn-event__title">@e.Title</h4>
+                                        @if (!string.IsNullOrEmpty(e.Summary))
+                                        {
+                                            <p class="bdn-event__sum">@e.Summary</p>
+                                        }
+                                        <div class="bdn-event__meta">
+                                            <strong>@(e.Author?.FullName ?? "BAN BIÊN TẬP")</strong>
+                                            <span>@(e.CreatedAt?.ToString("dd/MM/yyyy HH:mm"))</span>
+                                        </div>
+                                    </a>
                                 }
-                                <div class="bdn-event__meta">
-                                    <strong>@(eventItem.Author?.FullName ?? "BAN BIÊN TẬP")</strong>
-                                    <span>@(eventItem.CreatedAt?.ToString("dd/MM/yyyy HH:mm"))</span>
-                                </div>
-                            </a>
+                            </div>
                         </div>
                     }
                 </aside>
@@ -531,6 +542,13 @@ else if (mode == "public" || mode == "home")
                 if (!items.Any()) continue;
                 var big = items.First();
                 var rest = items.Skip(1).Take(6).ToList();
+                // Nếu chuyên mục có ít bài hơn 7, pad bằng latest để khung không còn khoảng trống.
+                if (rest.Count < 6)
+                {
+                    var pad = latest.Where(x => x.Id != big.Id && !rest.Any(r => r.Id == x.Id))
+                                    .Take(6 - rest.Count).ToList();
+                    rest.AddRange(pad);
+                }
                 var subCats = subCatsMap.ContainsKey(c.Slug) ? subCatsMap[c.Slug] : Array.Empty<string>();
 
                 <section class="bdn-block">
@@ -603,17 +621,12 @@ else if (mode == "public" || mode == "home")
                             <h3 class="bdn-cat__big-title">@heroBig.Title</h3>
                         </a>
                         <div class="bdn-cat__mini4">
-                            @for (int i = 0; i < topMinis.Count; i++)
+                            @foreach (var it in topMinis)
                             {
-                                var it = topMinis[i];
-                                var withImg = i < 2;
                                 <a class="bdn-cat__mini" href="/Article/Details/@it.Id">
-                                    @if (withImg)
-                                    {
-                                        <div class="bdn-cat__mini-img">
-                                            <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
-                                        </div>
-                                    }
+                                    <div class="bdn-cat__mini-img">
+                                        <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                                    </div>
                                     <h4 class="bdn-cat__mini-title">@it.Title</h4>
                                 </a>
                             }
@@ -760,6 +773,24 @@ else if (mode == "public" || mode == "home")
             render();
             start();
         })();
+
+        // ── Sự kiện & bình luận widget: prev/next cycle ──
+        (function(){
+            var box = document.getElementById('bdnEvent');
+            if (!box) return;
+            var items = Array.prototype.slice.call(box.querySelectorAll('.bdn-event__body'));
+            if (items.length <= 1) return;
+            var idx = 0;
+            function show(i){
+                idx = (i + items.length) % items.length;
+                items.forEach(function(el, k){ el.classList.toggle('is-active', k === idx); });
+            }
+            var prev = document.getElementById('bdnEventPrev');
+            var next = document.getElementById('bdnEventNext');
+            if (prev) prev.addEventListener('click', function(e){ e.preventDefault(); show(idx - 1); });
+            if (next) next.addEventListener('click', function(e){ e.preventDefault(); show(idx + 1); });
+        })();
+
         // ── Category page: ĐỌC NHIỀU / TIN MỚI tab toggle ──
         (function(){
             var tabs = document.querySelectorAll('.bdn-cat__tab');

@@ -276,7 +276,7 @@
                 bp.frequency.value = 2200;
                 bp.Q.value = 0.7;
                 var gain = a.createGain();
-                gain.gain.setValueAtTime(1.6, now);
+                gain.gain.setValueAtTime(0.55, now);
                 src.connect(bp); bp.connect(gain); gain.connect(a.destination);
                 src.start(now);
                 src.stop(now + dur + 0.05);
