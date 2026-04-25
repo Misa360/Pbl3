@@ -4,118 +4,365 @@
 }
 
 <link rel="stylesheet" href="~/css/article.css" />
+
 <div class="article-page-wrapper">
 
     @await Html.PartialAsync("_ArticleSubNav")
 
-    <div class="article-container" style="padding-top: 24px; padding-bottom: 48px;">
-        <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="font-family: var(--art-serif); font-size: 28px; color: var(--art-accent);">📞 Hotline Khẩn Cấp</h1>
-            <p style="color: var(--art-text-muted); font-size: 15px;">Danh bạ các số điện thoại hỗ trợ khẩn cấp tại Đà Nẵng</p>
+    <!-- ══════════════════════════════════════════════
+         HOTLINE HERO — banner lớn, dễ thao tác khi khẩn cấp
+         ══════════════════════════════════════════════ -->
+    <header class="hl-hero">
+        <div class="article-container hl-hero__inner">
+            <div class="hl-hero__content">
+                <span class="hl-hero__eyebrow">DaNang SafeMap · Danh bạ khẩn cấp</span>
+                <h1>📞 Hotline Khẩn Cấp Đà Nẵng</h1>
+                <p>
+                    Khi nguy cấp, nhấn trực tiếp vào số bên dưới để gọi ngay.
+                    Giữ tab này trên màn hình chính để dùng nhanh khi cần.
+                </p>
+                <div class="hl-hero__tips">
+                    <span>🕒 24/7</span>
+                    <span>🆓 Miễn phí</span>
+                    <span>📍 Áp dụng trên toàn TP. Đà Nẵng</span>
+                </div>
+            </div>
+            <div class="hl-hero__quickcall">
+                <a class="hl-quickcall hl-quickcall--police" href="tel:113" aria-label="Gọi 113 Công an">
+                    <span class="hl-quickcall__icon">🚔</span>
+                    <span class="hl-quickcall__num">113</span>
+                    <span class="hl-quickcall__label">Công an</span>
+                </a>
+                <a class="hl-quickcall hl-quickcall--fire" href="tel:114" aria-label="Gọi 114 Cứu hoả">
+                    <span class="hl-quickcall__icon">🚒</span>
+                    <span class="hl-quickcall__num">114</span>
+                    <span class="hl-quickcall__label">Cứu hoả</span>
+                </a>
+                <a class="hl-quickcall hl-quickcall--amb" href="tel:115" aria-label="Gọi 115 Cấp cứu">
+                    <span class="hl-quickcall__icon">🚑</span>
+                    <span class="hl-quickcall__num">115</span>
+                    <span class="hl-quickcall__label">Cấp cứu</span>
+                </a>
+            </div>
         </div>
+    </header>
 
-        <!-- SỐ KHẨN CẤP QUỐC GIA -->
-        <div class="art-section-header">
-            <h2>🚨 Số khẩn cấp quốc gia</h2>
-        </div>
-        <div class="hotline-grid">
-            <div class="hotline-card police">
-                <div class="hotline-icon">🚔</div>
-                <div class="hotline-name">Công an (An ninh trật tự)</div>
-                <div class="hotline-desc">Trình báo tội phạm, an ninh trật tự, cướp giật</div>
-                <div class="hotline-number"><a href="tel:113">113</a></div>
-            </div>
-            <div class="hotline-card fire">
-                <div class="hotline-icon">🚒</div>
-                <div class="hotline-name">Cứu hỏa — Phòng cháy chữa cháy</div>
-                <div class="hotline-desc">Cháy nổ, giải cứu, sự cố hóa chất</div>
-                <div class="hotline-number"><a href="tel:114">114</a></div>
-            </div>
-            <div class="hotline-card ambulance">
-                <div class="hotline-icon">🚑</div>
-                <div class="hotline-name">Cấp cứu y tế</div>
-                <div class="hotline-desc">Tai nạn, cấp cứu, xe cứu thương</div>
-                <div class="hotline-number"><a href="tel:115">115</a></div>
-            </div>
-        </div>
+    <div class="article-container hl-container">
 
-        <!-- ĐÀ NẴNG -->
-        <div class="art-section-header">
-            <h2>🏛️ Cơ quan chức năng Đà Nẵng</h2>
-        </div>
-        <div class="hotline-grid">
-            <div class="hotline-card police">
-                <div class="hotline-icon">🏛️</div>
-                <div class="hotline-name">Công an TP. Đà Nẵng</div>
-                <div class="hotline-desc">Tổng đài phản ánh an ninh trật tự</div>
-                <div class="hotline-number"><a href="tel:02363821320">0236 382 1320</a></div>
+        <!-- ── SEARCH + CATEGORY FILTER ── -->
+        <div class="hl-toolbar">
+            <div class="hl-search">
+                <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="hl-search-input" type="text" placeholder="Tìm theo tên dịch vụ hoặc số điện thoại..." />
             </div>
-            <div class="hotline-card police">
-                <div class="hotline-icon">🚓</div>
-                <div class="hotline-name">Cảnh sát giao thông Đà Nẵng</div>
-                <div class="hotline-desc">Tai nạn giao thông, vi phạm luật giao thông</div>
-                <div class="hotline-number"><a href="tel:02363895043">0236 389 5043</a></div>
-            </div>
-            <div class="hotline-card ambulance">
-                <div class="hotline-icon">🏥</div>
-                <div class="hotline-name">Bệnh viện Đa khoa Đà Nẵng</div>
-                <div class="hotline-desc">Khoa cấp cứu 24/7</div>
-                <div class="hotline-number"><a href="tel:02363821480">0236 382 1480</a></div>
-            </div>
-            <div class="hotline-card ambulance">
-                <div class="hotline-icon">🏥</div>
-                <div class="hotline-name">BV Phụ sản — Nhi Đà Nẵng</div>
-                <div class="hotline-desc">Cấp cứu sản phụ và trẻ em</div>
-                <div class="hotline-number"><a href="tel:02363957777">0236 395 7777</a></div>
-            </div>
-            <div class="hotline-card other">
-                <div class="hotline-icon">🛂</div>
-                <div class="hotline-name">Sở Du lịch Đà Nẵng</div>
-                <div class="hotline-desc">Hỗ trợ du khách, khiếu nại dịch vụ du lịch</div>
-                <div class="hotline-number"><a href="tel:02363550111">0236 355 0111</a></div>
-            </div>
-            <div class="hotline-card other">
-                <div class="hotline-icon">📋</div>
-                <div class="hotline-name">Tổng đài 1022 Đà Nẵng</div>
-                <div class="hotline-desc">Phản ánh, kiến nghị về đời sống đô thị</div>
-                <div class="hotline-number"><a href="tel:1022">1022</a></div>
+            <div class="hl-filter" id="hl-filter">
+                <button type="button" class="hl-chip active" data-filter="all">Tất cả</button>
+                <button type="button" class="hl-chip" data-filter="police">🚔 An ninh</button>
+                <button type="button" class="hl-chip" data-filter="medical">🏥 Y tế</button>
+                <button type="button" class="hl-chip" data-filter="fire">🚒 Cứu hoả</button>
+                <button type="button" class="hl-chip" data-filter="utility">⚡ Tiện ích</button>
+                <button type="button" class="hl-chip" data-filter="support">💚 Hỗ trợ</button>
             </div>
         </div>
 
-        <!-- TIỆN ÍCH -->
-        <div class="art-section-header">
-            <h2>⚡ Dịch vụ tiện ích</h2>
+        <!-- ── SECTION 1: QUỐC GIA ── -->
+        <section class="hl-section">
+            <header class="hl-section__head">
+                <span class="hl-section__bar"></span>
+                <h2>Số khẩn cấp quốc gia</h2>
+                <span class="hl-section__tag">24/7 · Miễn phí</span>
+            </header>
+            <div class="hl-grid">
+                <article class="hl-card" data-cat="police" data-search="công an an ninh trật tự 113">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--police">🚔</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Công an · 113</div>
+                            <div class="hl-card__desc">Trình báo tội phạm, cướp giật, an ninh trật tự</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:113">📞 113</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="113">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="fire" data-search="cứu hoả phòng cháy chữa cháy 114">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--fire">🚒</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Cứu hoả · 114</div>
+                            <div class="hl-card__desc">Cháy nổ, giải cứu, sự cố hoá chất</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:114">📞 114</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="114">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="medical" data-search="cấp cứu y tế 115 xe cứu thương">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--medical">🚑</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Cấp cứu · 115</div>
+                            <div class="hl-card__desc">Tai nạn, cấp cứu, xe cứu thương</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:115">📞 115</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="115">Sao chép</button>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- ── SECTION 2: CƠ QUAN ĐÀ NẴNG ── -->
+        <section class="hl-section">
+            <header class="hl-section__head">
+                <span class="hl-section__bar"></span>
+                <h2>Cơ quan chức năng Đà Nẵng</h2>
+                <span class="hl-section__tag">Trực ban 24/7</span>
+            </header>
+            <div class="hl-grid">
+                <article class="hl-card" data-cat="police" data-search="công an đà nẵng 02363821320">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--police">🏛️</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Công an TP. Đà Nẵng</div>
+                            <div class="hl-card__desc">Tổng đài phản ánh an ninh trật tự</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:02363821320">📞 0236 382 1320</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="02363821320">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="police" data-search="cảnh sát giao thông đà nẵng 02363895043">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--police">🚓</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">CSGT Đà Nẵng</div>
+                            <div class="hl-card__desc">Tai nạn giao thông, vi phạm luật giao thông</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:02363895043">📞 0236 389 5043</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="02363895043">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="medical" data-search="bệnh viện đà nẵng cấp cứu 02363821480">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--medical">🏥</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">BV Đa khoa Đà Nẵng</div>
+                            <div class="hl-card__desc">Khoa cấp cứu 24/7</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:02363821480">📞 0236 382 1480</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="02363821480">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="medical" data-search="bệnh viện phụ sản nhi 02363957777">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--medical">🧸</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">BV Phụ sản — Nhi Đà Nẵng</div>
+                            <div class="hl-card__desc">Cấp cứu sản phụ và trẻ em</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:02363957777">📞 0236 395 7777</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="02363957777">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="support" data-search="sở du lịch đà nẵng 02363550111">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--support">🛂</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Sở Du lịch Đà Nẵng</div>
+                            <div class="hl-card__desc">Hỗ trợ du khách, khiếu nại dịch vụ du lịch</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:02363550111">📞 0236 355 0111</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="02363550111">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="support" data-search="tổng đài 1022 đời sống đô thị">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--support">📋</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Tổng đài 1022</div>
+                            <div class="hl-card__desc">Phản ánh, kiến nghị về đời sống đô thị</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:1022">📞 1022</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="1022">Sao chép</button>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- ── SECTION 3: TIỆN ÍCH ── -->
+        <section class="hl-section">
+            <header class="hl-section__head">
+                <span class="hl-section__bar"></span>
+                <h2>Dịch vụ tiện ích & Hỗ trợ</h2>
+                <span class="hl-section__tag">Giờ hành chính + trực khẩn cấp</span>
+            </header>
+            <div class="hl-grid">
+                <article class="hl-card" data-cat="utility" data-search="điện lực đà nẵng 19006969">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--utility">⚡</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Điện lực Đà Nẵng</div>
+                            <div class="hl-card__desc">Sự cố điện, mất điện, cháy nổ điện</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:19006969">📞 1900 6969</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="19006969">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="utility" data-search="cấp nước dawaco đà nẵng 02363605555">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--utility">💧</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Cấp nước Đà Nẵng (Dawaco)</div>
+                            <div class="hl-card__desc">Sự cố nước, mất nước, rò rỉ</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:02363605555">📞 0236 360 5555</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="02363605555">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="support" data-search="bảo vệ trẻ em bạo lực xâm hại 111">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--support">🛡️</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Bảo vệ trẻ em · 111</div>
+                            <div class="hl-card__desc">Bạo lực, xâm hại trẻ em</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:111">📞 111</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="111">Sao chép</button>
+                    </div>
+                </article>
+                <article class="hl-card" data-cat="support" data-search="sức khoẻ tâm thần tư vấn tâm lý 1800599979">
+                    <div class="hl-card__top">
+                        <div class="hl-card__icon hl-card__icon--support">💚</div>
+                        <div class="hl-card__head">
+                            <div class="hl-card__name">Hỗ trợ sức khoẻ tâm thần</div>
+                            <div class="hl-card__desc">Tư vấn tâm lý, khủng hoảng tinh thần</div>
+                        </div>
+                    </div>
+                    <div class="hl-card__actions">
+                        <a class="hl-btn hl-btn--call" href="tel:1800599979">📞 1800 599 979</a>
+                        <button type="button" class="hl-btn hl-btn--copy" data-copy="1800599979">Sao chép</button>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <div class="hl-empty" id="hl-empty" style="display:none;">
+            Không tìm thấy hotline phù hợp với từ khoá của bạn.
         </div>
-        <div class="hotline-grid">
-            <div class="hotline-card electricity">
-                <div class="hotline-icon">⚡</div>
-                <div class="hotline-name">Điện lực Đà Nẵng</div>
-                <div class="hotline-desc">Sự cố điện, mất điện, cháy nổ điện</div>
-                <div class="hotline-number"><a href="tel:19006969">1900 6969</a></div>
+
+        <footer class="hl-footer">
+            <div>
+                <strong>Lời khuyên an toàn</strong>
+                <p>Khi gọi khẩn cấp, hãy giữ bình tĩnh, nói rõ địa điểm chi tiết (đường, phường, toạ độ nếu có) và tình trạng hiện tại. Không tắt máy cho đến khi tổng đài viên xác nhận đã tiếp nhận.</p>
             </div>
-            <div class="hotline-card water">
-                <div class="hotline-icon">💧</div>
-                <div class="hotline-name">Cấp nước Đà Nẵng (Dawaco)</div>
-                <div class="hotline-desc">Sự cố nước, mất nước, rò rỉ</div>
-                <div class="hotline-number"><a href="tel:02363605555">0236 360 5555</a></div>
+            <div class="hl-footer__links">
+                <a href="/Article/SafeWiki">📖 SafeWiki</a>
+                <a href="/Article">📰 Tin tức</a>
+                <a href="/Map">🗺️ Bản đồ an toàn</a>
             </div>
-            <div class="hotline-card other">
-                <div class="hotline-icon">🛡️</div>
-                <div class="hotline-name">Bảo vệ trẻ em</div>
-                <div class="hotline-desc">Bạo lực, xâm hại trẻ em</div>
-                <div class="hotline-number"><a href="tel:111">111</a></div>
-            </div>
-            <div class="hotline-card other">
-                <div class="hotline-icon">💚</div>
-                <div class="hotline-name">Hỗ trợ sức khỏe tâm thần</div>
-                <div class="hotline-desc">Tư vấn tâm lý, khủng hoảng tinh thần</div>
-                <div class="hotline-number"><a href="tel:1800599979">1800 599 979</a></div>
-            </div>
-        </div>
+        </footer>
     </div>
 
-    @section Scripts {
-    <script src="~/js/article.js"></script>
-}
+    <!-- Toast for copy feedback -->
+    <div class="hl-toast" id="hl-toast" role="status" aria-live="polite"></div>
 </div>
 
+@section Scripts {
+    <script src="~/js/article.js"></script>
+    <script>
+    (function(){
+        // Copy number
+        var toast = document.getElementById('hl-toast');
+        function showToast(msg){
+            if(!toast) return;
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._t);
+            toast._t = setTimeout(function(){ toast.classList.remove('show'); }, 1800);
+        }
+        document.querySelectorAll('.hl-btn--copy').forEach(function(btn){
+            btn.addEventListener('click', function(){
+                var num = btn.getAttribute('data-copy') || '';
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(num).then(function(){
+                        showToast('Đã sao chép: ' + num);
+                    }).catch(function(){ showToast('Không sao chép được'); });
+                } else {
+                    try {
+                        var ta = document.createElement('textarea');
+                        ta.value = num;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        showToast('Đã sao chép: ' + num);
+                    } catch(e){ showToast('Không sao chép được'); }
+                }
+            });
+        });
+
+        // Filter by category chip
+        var chips = document.querySelectorAll('.hl-chip');
+        var currentFilter = 'all';
+        chips.forEach(function(c){
+            c.addEventListener('click', function(){
+                chips.forEach(function(x){ x.classList.remove('active'); });
+                c.classList.add('active');
+                currentFilter = c.getAttribute('data-filter');
+                applyFilter();
+            });
+        });
+
+        // Search
+        var search = document.getElementById('hl-search-input');
+        var empty = document.getElementById('hl-empty');
+        var allCards = document.querySelectorAll('.hl-card');
+        function normalize(s){
+            return (s || '').toString().toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g,'d');
+        }
+        function applyFilter(){
+            var q = normalize(search ? search.value.trim() : '');
+            var shown = 0;
+            allCards.forEach(function(card){
+                var cat = card.getAttribute('data-cat') || '';
+                var hay = normalize(card.getAttribute('data-search') || card.innerText);
+                var catOk = currentFilter === 'all' || cat === currentFilter;
+                var queryOk = !q || hay.indexOf(q) !== -1;
+                var ok = catOk && queryOk;
+                card.style.display = ok ? '' : 'none';
+                if (ok) shown++;
+            });
+            // Hide sections with no visible cards
+            document.querySelectorAll('.hl-section').forEach(function(sec){
+                var visible = sec.querySelectorAll('.hl-card:not([style*="display: none"])').length;
+                sec.style.display = visible ? '' : 'none';
+            });
+            if (empty) empty.style.display = shown ? 'none' : 'block';
+        }
+        if (search) search.addEventListener('input', applyFilter);
+    })();
+    </script>
+}

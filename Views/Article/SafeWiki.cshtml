@@ -1,21 +1,18 @@
-    @{
+@{
     ViewData["Title"] = "SafeWiki - Cẩm nang an toàn";
     Layout = "_Layout";
 }
 
+@* SafeWiki — kiểu "đọc sách toàn màn hình".
+   Theo yêu cầu: bỏ hết text xung quanh, chỉ giữ cuốn sách, fit vào viewport
+   (không phải scroll lên xuống để thấy hết). *@
 <link rel="stylesheet" href="~/css/article.css" />
-<div class="article-page-wrapper">
 
+<div class="safewiki-fullscreen">
     @await Html.PartialAsync("_ArticleSubNav")
 
-    <div class="article-container" style="padding-top: 24px; padding-bottom: 48px;">
-        <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="font-family: var(--art-serif); font-size: 28px; color: var(--art-accent);">📖 SafeWiki — Cẩm nang An toàn</h1>
-            <p style="color: var(--art-text-muted); font-size: 15px;">Lật từng trang để tìm hiểu các kiến thức an toàn quan trọng tại Đà Nẵng</p>
-        </div>
-
-        <!-- FLIPBOOK CONTAINER -->
-        <div id="canvas" style="visibility: hidden;">
+    <div class="safewiki-stage">
+        <div id="canvas">
             <div id="book-zoom">
                 <div class="sample-docs"></div>
                 <div class="hard"></div>
@@ -25,10 +22,48 @@
             </div>
         </div>
 
-        <div id="slider-bar" class="turnjs-slider">
-            <div id="slider"></div>
+        @* Top-right icon cluster: sound toggle + fullscreen *@
+        <div class="safewiki-tools">
+            <button type="button" class="safewiki-tool" id="safewikiSoundBtn"
+                    aria-label="Tắt/bật tiếng" title="Tắt/bật tiếng lật trang">
+                <svg class="safewiki-tool__icon safewiki-tool__icon--on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+                <svg class="safewiki-tool__icon safewiki-tool__icon--off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <line x1="23" y1="9" x2="17" y2="15"/>
+                    <line x1="17" y1="9" x2="23" y2="15"/>
+                </svg>
+            </button>
+            <button type="button" class="safewiki-tool" id="safewikiFullBtn"
+                    aria-label="Toàn màn hình" title="Toàn màn hình">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+            </button>
+        </div>
+
+        @* Prev/next buttons at bottom center, side by side *@
+        <div class="safewiki-pager">
+            <button type="button" class="safewiki-nav safewiki-nav--prev"
+                    aria-label="Trang trước"
+                    onclick="if(window.SafeWikiFlip){SafeWikiFlip.unlock();SafeWikiFlip.play();} $('.sample-docs').turn('previous');">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+            <button type="button" class="safewiki-nav safewiki-nav--next"
+                    aria-label="Trang sau"
+                    onclick="if(window.SafeWikiFlip){SafeWikiFlip.unlock();SafeWikiFlip.play();} $('.sample-docs').turn('next');">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 6l6 6-6 6"/>
+                </svg>
+            </button>
         </div>
     </div>
+
 </div>
 
 @section Scripts {
@@ -50,30 +85,69 @@
     <script src="~/files/js/docs.js"></script>
 
     <style>
-        /* Override flipbook styles to integrate with page layout */
-        #canvas {
-            width: 960px;
-            height: 620px;
-            margin: 0 auto 20px;
+        /* Tắt scroll toàn trang — cuốn sách phải fit gọn trong viewport. */
+        html, body {
+            overflow: hidden !important;
+            height: 100vh !important;
+            margin: 0;
         }
-        .sample-docs {
-            margin-top: 20px;
+
+        /* Stage chiếm viewport trừ top-nav + sub-nav. */
+        /* dsm-nav (fixed 64px) sits above .page-content, so our 100vh container
+           would otherwise overflow by 64px and clip the bottom of the book.
+           Subtract the nav height here. */
+        .safewiki-fullscreen {
+            --safewiki-nav-h: 64px;
+            --safewiki-subnav-h: 46px;
+            --safewiki-top-offset: calc(var(--safewiki-subnav-h) + 4px);
+            --safewiki-bottom-offset: 70px; /* chừa chỗ cho 2 nút ‹ › phía dưới */
+            position: relative;
+            width: 100vw;
+            height: calc(100vh - var(--safewiki-nav-h));
+            overflow: hidden;
+            /* Nền đồng bộ với /Article và /Article/Details (cùng #ffffff) */
+            background: #ffffff;
+        }
+
+        .safewiki-stage {
+            position: absolute;
+            top: var(--safewiki-top-offset);
+            left: 0;
+            right: 0;
+            bottom: var(--safewiki-bottom-offset);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Book uses fixed logical dimensions (turn.js needs explicit pixel
+           sizes). We wrap #canvas in a transform-scale so the book always
+           fits whichever dimension is tighter. Scale is computed at runtime
+           in JS — fallback CSS just keeps the initial natural size. */
+        #canvas {
             width: 942px;
             height: 600px;
+            margin: 0 auto !important;
+            position: relative;
+            transform-origin: center center;
+            visibility: hidden;
+        }
+
+        .sample-docs {
+            width: 942px;
+            height: 600px;
+            margin: 0 !important;
+            position: relative;
         }
         .sample-docs .page {
             width: 471px;
             height: 600px;
-            background: white;
+            background: #fff;
             box-shadow: 0 0 20px rgba(0,0,0,0.2);
         }
-        .sample-docs .hard {
-            background-image: url('/files/pics/covers.jpg');
-        }
+        .sample-docs .hard { background-image: url('/files/pics/covers.jpg'); }
         .sample-docs .p2 { background-position: -471px 0; }
-        .sample-docs .p28 {
-            background: linear-gradient(to right, #fff 95%, #dadada 100%);
-        }
+        .sample-docs .p28 { background: linear-gradient(to right, #fff 95%, #dadada 100%); }
         .sample-docs .p29 { background-position: -942px 0; }
         .sample-docs .p30 { background-position: -1413px 0; }
         .sample-docs .even .gradient {
@@ -88,100 +162,150 @@
         }
         .sample-docs .loader {
             background-image:url('/files/pics/loader.gif');
-            width:22px; height:22px; position:absolute; top:280px; left:219px;
+            width:22px; height:22px; position:absolute; top:45%; left:47%;
         }
-        .turnjs-slider {
-            width: 500px;
-            margin: 0 auto;
-            padding: 10px 0;
-        }
-        #slider {
-            margin: 0 auto;
-        }
-        .ui-slider {
-            background: #ddd;
-            border-radius: 4px;
-            height: 6px;
-            position: relative;
-        }
-        .ui-slider-handle {
-            background: var(--art-accent, #2D6A4F);
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
+
+        /* Cụm 2 nút ‹ › ở dưới cuốn sách, cạnh nhau. */
+        .safewiki-pager {
             position: absolute;
-            top: -6px;
-            cursor: pointer;
-            outline: none;
+            left: 50%;
+            bottom: 16px;
+            transform: translateX(-50%);
+            display: flex; gap: 16px;
+            z-index: 5;
         }
-        /* Responsive */
-        @@media (max-width: 1000px) {
-            #canvas { width: 100%; overflow-x: auto; }
+        .safewiki-nav {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.08);
+            background: #ffffff;
+            color: #3a3a3a;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+        }
+        .safewiki-nav svg { width: 22px; height: 22px; display: block; }
+        .safewiki-nav:hover {
+            color: #fff;
+            background: var(--art-accent, #00695C);
+            border-color: var(--art-accent, #00695C);
+            transform: scale(1.06);
+        }
+
+        /* Cụm icon góc trên-phải: bật/tắt tiếng + toàn màn hình. */
+        .safewiki-tools {
+            position: absolute;
+            top: 12px; right: 24px;
+            display: flex; gap: 6px;
+            z-index: 5;
+        }
+        .safewiki-tool {
+            width: 36px; height: 36px;
+            border-radius: 8px; border: none;
+            background: rgba(255,255,255,0.7);
+            color: #3a3a3a;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .safewiki-tool svg { width: 18px; height: 18px; }
+        .safewiki-tool:hover { background: var(--art-accent, #00695C); color: #fff; }
+
+        /* Hide the slider bar entirely since we only want the book */
+        #slider-bar, .turnjs-slider, #slider { display: none !important; }
+
+        @@media (max-width: 720px) {
+            .safewiki-fullscreen { --safewiki-top-offset: 76px; --safewiki-bottom-offset: 64px; }
+            #canvas {
+                width: min(calc(100vw - 30px), calc((100vh - var(--safewiki-top-offset) - var(--safewiki-bottom-offset)) * 1.548));
+            }
+            .safewiki-nav { width: 38px; height: 38px; }
+            .safewiki-nav svg { width: 18px; height: 18px; }
+            .safewiki-tools { right: 10px; }
         }
     </style>
 
     <script>
-        // Initialize flipbook after all scripts loaded
+        // ── Page-flip sound (HTML5 Audio MP3) ──
+        window.SafeWikiFlip = (function () {
+            var muted = false;
+            // Pool 3 audio elements để có thể trigger liên tiếp không bị cắt.
+            var pool = [];
+            for (var i = 0; i < 3; i++) {
+                var a = new Audio('/audio/page-flip.mp3?v=1');
+                a.preload = 'auto';
+                a.volume = 0.55;
+                pool.push(a);
+            }
+            var idx = 0;
+            // No-op stubs cho API tương thích với inline onclick gọi unlock().
+            function unlock() { /* play() chạy trong user click nên không cần unlock riêng */ }
+            function setMuted(m) { muted = !!m; }
+            function isMuted() { return muted; }
+            function play() {
+                if (muted) return;
+                var a = pool[idx % pool.length];
+                idx++;
+                try {
+                    a.currentTime = 0;
+                    var p = a.play();
+                    if (p && typeof p.catch === 'function') p.catch(function(){});
+                } catch (e) { /* ignore */ }
+            }
+            return { play: play, unlock: unlock, setMuted: setMuted, isMuted: isMuted };
+        })();
+
+        // Wire tool buttons (sound toggle + fullscreen)
+        document.addEventListener('DOMContentLoaded', function () {
+            var soundBtn = document.getElementById('safewikiSoundBtn');
+            var onIcon  = soundBtn && soundBtn.querySelector('.safewiki-tool__icon--on');
+            var offIcon = soundBtn && soundBtn.querySelector('.safewiki-tool__icon--off');
+            if (soundBtn) {
+                soundBtn.addEventListener('click', function () {
+                    var m = !window.SafeWikiFlip.isMuted();
+                    window.SafeWikiFlip.setMuted(m);
+                    if (onIcon)  onIcon.style.display  = m ? 'none' : '';
+                    if (offIcon) offIcon.style.display = m ? '' : 'none';
+                });
+            }
+            var fullBtn = document.getElementById('safewikiFullBtn');
+            if (fullBtn) {
+                fullBtn.addEventListener('click', function () {
+                    var el = document.querySelector('.safewiki-fullscreen') || document.documentElement;
+                    if (document.fullscreenElement) { document.exitFullscreen(); }
+                    else if (el.requestFullscreen) { el.requestFullscreen(); }
+                });
+            }
+        });
+
+        // Hide the slider element that docs.js may expect, and init turn.js.
+        // Slider / hash / mousewheel are kept functional internally so turn.js
+        // callbacks don't crash, but the DOM for the slider is hidden via CSS.
         (function () {
+            // Inject a hidden slider wrapper so docs.js's $('#slider').slider(...)
+            // calls don't NPE.
+            if (!document.getElementById('slider-bar')) {
+                var wrap = document.createElement('div');
+                wrap.id = 'slider-bar';
+                wrap.style.display = 'none';
+                wrap.innerHTML = '<div id="slider"></div>';
+                document.body.appendChild(wrap);
+            }
+
             function initFlipbook() {
                 var flipbook = $('.sample-docs');
-
-                // Wait for CSS to load
                 if (flipbook.width() == 0 || flipbook.height() == 0) {
                     setTimeout(initFlipbook, 50);
                     return;
                 }
 
-                // Mousewheel navigation
-                $('#book-zoom').mousewheel(function (event, delta, deltaX, deltaY) {
-                    var data = $(this).data(),
-                        step = 30,
-                        flipbook = $('.sample-docs'),
-                        actualPos = $('#slider').slider('value') * step;
-
-                    if (typeof (data.scrollX) === 'undefined') {
-                        data.scrollX = actualPos;
-                        data.scrollPage = flipbook.turn('page');
-                    }
-
-                    data.scrollX = Math.min($("#slider").slider('option', 'max') * step,
-                        Math.max(0, data.scrollX + deltaX));
-
-                    var actualView = Math.round(data.scrollX / step),
-                        page = Math.min(flipbook.turn('pages'), Math.max(1, actualView * 2 - 2));
-
-                    if ($.inArray(data.scrollPage, flipbook.turn('view', page)) == -1) {
-                        data.scrollPage = page;
-                        flipbook.turn('page', page);
-                    }
-
-                    if (data.scrollTimer) clearInterval(data.scrollTimer);
-                    data.scrollTimer = setTimeout(function () {
-                        data.scrollX = undefined;
-                        data.scrollPage = undefined;
-                        data.scrollTimer = undefined;
-                    }, 1000);
-                });
-
-                // Slider
+                // Slider still initialized (for turn.js internal use), but hidden.
                 $("#slider").slider({
                     min: 1,
                     max: 100,
-                    start: function (event, ui) {
-                        if (!window._thumbPreview) {
-                            _thumbPreview = $('<div />', { 'class': 'thumbnail' }).html('<div></div>');
-                            setPreview(ui.value);
-                            _thumbPreview.appendTo($(ui.handle));
-                        } else
-                            setPreview(ui.value);
-                        moveBar(false);
-                    },
-                    slide: function (event, ui) {
-                        setPreview(ui.value);
-                    },
+                    slide: function (event, ui) { /* noop — slider is hidden */ },
                     stop: function () {
-                        if (window._thumbPreview)
-                            _thumbPreview.removeClass('show');
                         $('.sample-docs').turn('page', Math.max(1, $(this).slider('value') * 2 - 2));
                     }
                 });
@@ -192,7 +316,6 @@
                     else if (e.keyCode === 39) { $('.sample-docs').turn('next'); }
                 });
 
-                // Create the flipbook
                 flipbook.turn({
                     elevation: 50,
                     acceleration: false,
@@ -201,11 +324,11 @@
                     duration: 1000,
                     pages: 12,
                     when: {
-                        turning: function (e, page, view) {
+                        turning: function (e, page) {
+                            if (window.SafeWikiFlip) { window.SafeWikiFlip.play(); }
                             var book = $(this),
                                 currentPage = book.turn('page'),
                                 pages = book.turn('pages');
-
                             if (currentPage > 3 && currentPage < pages - 3) {
                                 if (page == 1) {
                                     book.turn('page', 2).turn('stop').turn('page', page);
@@ -215,36 +338,31 @@
                                     e.preventDefault(); return;
                                 }
                             }
-                            Hash.go('page/' + page).update();
+                            if (window.Hash) { Hash.go('page/' + page).update(); }
                         },
-                        turned: function (e, page, view) {
+                        turned: function (e, page) {
                             var book = $(this);
-                            $('#slider').slider('value', getViewNumber(book, page));
+                            if (typeof getViewNumber === 'function') {
+                                $('#slider').slider('value', getViewNumber(book, page));
+                            }
                             book.turn('center');
                         },
-                        start: function (e, pageObj) { moveBar(true); },
-                        end: function (e, pageObj) {
-                            var book = $(this);
-                            setTimeout(function () {
-                                $('#slider').slider('value', getViewNumber(book));
-                            }, 1);
-                            moveBar(false);
-                        },
                         missing: function (e, pages) {
-                            for (var i = 0; i < pages.length; i++)
-                                addPage(pages[i], $(this));
+                            if (typeof addPage === 'function') {
+                                for (var i = 0; i < pages.length; i++) addPage(pages[i], $(this));
+                            }
                         }
                     }
                 }).turn('page', 2);
 
-                $('#slider').slider('option', 'max', numberOfViews(flipbook));
+                if (typeof numberOfViews === 'function') {
+                    $('#slider').slider('option', 'max', numberOfViews(flipbook));
+                }
                 flipbook.addClass('animated');
 
-                // Show canvas
                 $('#canvas').css({ visibility: 'visible' });
             }
 
-            // Wait for jQuery and turn.js to be ready, then init
             function waitAndInit() {
                 if (typeof $ !== 'undefined' && $.fn && $.fn.turn) {
                     initFlipbook();
@@ -253,6 +371,30 @@
                 }
             }
             waitAndInit();
+
+            // Fit the book to the viewport using CSS transform scale, so turn.js
+            // keeps its internal 942×600 pixel math while the user sees a book
+            // sized to their screen. Recompute on resize.
+            function fitBook() {
+                var canvas = document.getElementById('canvas');
+                if (!canvas) return;
+                var stage = document.querySelector('.safewiki-stage');
+                if (!stage) return;
+                var availW = stage.clientWidth - 32; // arrows now below, only need a small horizontal margin
+                var availH = stage.clientHeight - 12;
+                var scale = Math.min(availW / 942, availH / 600, 1.15);
+                if (!isFinite(scale) || scale <= 0) scale = 1;
+                canvas.style.transform = 'scale(' + scale + ')';
+            }
+            fitBook();
+            var resizeTimer;
+            window.addEventListener('resize', function () {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(fitBook, 120);
+            });
+            // Re-fit after flipbook init paints (delay for turn.js gradient DOM).
+            setTimeout(fitBook, 400);
+            setTimeout(fitBook, 1200);
         })();
     </script>
 }

@@ -64,6 +64,26 @@
                     Đăng Nhập
                 </a>
 
+                <!-- Bell notification — hiện khi đã đăng nhập -->
+                <div class="dsm-bell" id="dsmBell" style="display:none;">
+                    <button type="button" class="dsm-bell__btn" id="dsmBellBtn" aria-label="Thông báo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span class="dsm-bell__badge" id="dsmBellBadge" style="display:none;">0</span>
+                    </button>
+                    <div class="dsm-bell__dropdown" id="dsmBellDropdown">
+                        <div class="dsm-bell__head">
+                            <span>Thông báo</span>
+                            <button type="button" class="dsm-bell__mark" id="dsmBellMarkAll">Đánh dấu đã đọc</button>
+                        </div>
+                        <div class="dsm-bell__list" id="dsmBellList">
+                            <div class="dsm-bell__empty">Đang tải...</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- User menu — hiện khi đã đăng nhập -->
                 <div class="user-menu" id="userMenu" style="display:none;">
                     <button class="user-trigger" id="userTrigger" type="button" aria-label="Menu người dùng">
@@ -118,23 +138,20 @@
 
                 document.getElementById('navLoginBtn').style.display = 'none';
                 document.getElementById('userMenu').style.display    = 'flex';
+                var bellEl = document.getElementById('dsmBell');
+                if (bellEl) { bellEl.style.display = 'inline-flex'; if (window.__dsmBellInit) window.__dsmBellInit(); }
 
-                // HIỆN LINK DỰA TRÊN ROLE
-                var divider = document.querySelector('.dropdown-divider');
-                if (divider) {
-                    var extraLink = document.createElement('a');
-                    extraLink.className = 'dropdown-item';
-                    
-                    if (user.role === 'Admin') {
-                        extraLink.href = '/Article/Index?mode=admin';
-                        extraLink.style.color = 'var(--dsm-primary, #2D6A4F)';
-                        extraLink.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg> Admin Dashboard';
-                    } else {
-                        extraLink.href = '/Article/Index?mode=my';
-                        extraLink.style.color = '#333';
-                        extraLink.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Quản lý bài viết';
+                // Admin chỉ còn link Admin Dashboard; user thường không còn "Quản lý bài viết" ở đây.
+                if (user.role === 'Admin') {
+                    var divider = document.querySelector('.dropdown-divider');
+                    if (divider) {
+                        var adminLink = document.createElement('a');
+                        adminLink.className = 'dropdown-item';
+                        adminLink.href = '/Article/Index?mode=admin';
+                        adminLink.style.color = 'var(--dsm-primary, #2D6A4F)';
+                        adminLink.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg> Admin Dashboard';
+                        divider.parentNode.insertBefore(adminLink, divider);
                     }
-                    divider.parentNode.insertBefore(extraLink, divider);
                 }
             } else {
                 // Chưa đăng nhập
@@ -158,6 +175,77 @@
             menu.classList.remove('open');
         });
     }
+
+    // ── Bell notification ─────────────────────────────────────────────────
+    (function(){
+        var btn      = document.getElementById('dsmBellBtn');
+        var dropdown = document.getElementById('dsmBellDropdown');
+        var badge    = document.getElementById('dsmBellBadge');
+        var list     = document.getElementById('dsmBellList');
+        var markAll  = document.getElementById('dsmBellMarkAll');
+        if (!btn || !dropdown) return;
+
+        function fmt(n){ if (n == null) return ''; return n.createdAt || ''; }
+        function renderItems(items){
+            if (!items || !items.length){
+                list.innerHTML = '<div class="dsm-bell__empty">Chưa có thông báo nào</div>';
+                return;
+            }
+            list.innerHTML = items.map(function(n){
+                var href = n.articleId ? ('/Article/Details/' + n.articleId) : '#';
+                var cls  = 'dsm-bell__item' + (n.isRead ? '' : ' is-unread');
+                return '<a class="' + cls + '" href="' + href + '" data-id="' + n.id + '">' +
+                       '<div class="dsm-bell__item-title">' + (n.title || 'Thông báo') + '</div>' +
+                       '<div class="dsm-bell__item-body">' + (n.content || '') + '</div>' +
+                       '<div class="dsm-bell__item-meta">' + (n.createdAt || '') + '</div>' +
+                       '</a>';
+            }).join('');
+            Array.prototype.forEach.call(list.querySelectorAll('.dsm-bell__item'), function(a){
+                a.addEventListener('click', function(){
+                    var id = a.getAttribute('data-id');
+                    if (id) fetch('/Article/MarkNotificationRead/' + id, { method: 'POST' });
+                });
+            });
+        }
+        function refresh(){
+            fetch('/Article/GetNotifications').then(function(r){
+                if (!r.ok) throw new Error('unauthorized');
+                return r.json();
+            }).then(function(data){
+                var n = (data && data.unreadCount) || 0;
+                if (n > 0){ badge.textContent = n > 99 ? '99+' : n; badge.style.display = 'flex'; }
+                else { badge.style.display = 'none'; }
+                renderItems(data.items || []);
+            }).catch(function(){ /* not logged in yet */ });
+        }
+        window.__dsmBellInit = refresh;
+        // Auto-refresh ngay khi load (không cần đợi bấm nút) để hiện badge số chưa đọc.
+        try {
+            var raw = localStorage.getItem('user');
+            var u = raw ? JSON.parse(raw) : null;
+            if (u && (u.fullName || u.email)) refresh();
+        } catch (e) { /* ignore */ }
+        // Poll mỗi 60s để badge cập nhật realtime.
+        setInterval(function(){
+            try {
+                var raw = localStorage.getItem('user');
+                var u = raw ? JSON.parse(raw) : null;
+                if (u && (u.fullName || u.email)) refresh();
+            } catch (e) { /* ignore */ }
+        }, 60000);
+        btn.addEventListener('click', function(e){
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+            if (dropdown.classList.contains('open')) refresh();
+        });
+        document.addEventListener('click', function(){ dropdown.classList.remove('open'); });
+        dropdown.addEventListener('click', function(e){ e.stopPropagation(); });
+        if (markAll){
+            markAll.addEventListener('click', function(){
+                fetch('/Article/MarkAllRead', { method: 'POST' }).then(refresh);
+            });
+        }
+    })();
 
     // ── Logout ────────────────────────────────────────────────────────────
     var logoutBtn = document.getElementById('logoutBtn');

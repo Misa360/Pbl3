@@ -27,7 +27,7 @@
     var sideArticles = featured.Skip(1).Take(3).ToList();
 }
 
-<link rel="stylesheet" href="~/css/article.css" />
+<link rel="stylesheet" href="~/css/article.css" asp-append-version="true" />
 
 @if (mode == "admin")
 {
@@ -281,124 +281,548 @@ else if (mode == "my")
         </div>
     </div>
 }
-else
+else if (mode == "search")
 {
     // ══════════════════════════════════════════════
-    // GIAO DIỆN PUBLIC (Home & Category)
+    // KẾT QUẢ TÌM KIẾM /Article?q=...
     // ══════════════════════════════════════════════
-    <div class="article-page-wrapper">
-        <!-- SUB NAVIGATION -->
+    var q = ViewBag.Query as string ?? "";
+    <link rel="stylesheet" href="~/css/article-news.css" asp-append-version="true" />
+
+    <div class="bdn-page">
+        @await Html.PartialAsync("_ArticleSubNav")
+        <div class="bdn-container">
+            <div class="bdn-search__head">
+                <h1>Kết quả tìm kiếm</h1>
+                <small>Từ khóa: <strong>@q</strong> — @latest.Count kết quả</small>
+            </div>
+
+            @if (!latest.Any())
+            {
+                <div class="bdn-search__empty">
+                    Không tìm thấy bài viết nào khớp với từ khóa <strong>@q</strong>.
+                </div>
+            }
+            else
+            {
+                <div class="bdn-cat__list">
+                    @foreach (var it in latest)
+                    {
+                        <article class="bdn-cat__row">
+                            <a class="bdn-cat__row-img" href="/Article/Details/@it.Id">
+                                <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                            </a>
+                            <div class="bdn-cat__row-body">
+                                <h3><a href="/Article/Details/@it.Id">@it.Title</a></h3>
+                                <div class="bdn-cat__row-meta">
+                                    <span class="bdn-cat__row-cat">@(it.Category?.Name ?? "Tin tức")</span>
+                                    <span class="bdn-cat__row-date">@it.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(it.Summary))
+                                {
+                                    <p class="bdn-cat__row-sum">@it.Summary</p>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+        @await Html.PartialAsync("_SiteFooter")
+    </div>
+}
+else if (mode == "public" || mode == "home")
+{
+    // ══════════════════════════════════════════════
+    // GIAO DIỆN PUBLIC — lấy cảm hứng từ baodanang.vn
+    //   • Trang chủ /Article                   → nav chuyên mục + top 3 cột + block riêng từng chuyên mục
+    //   • /Article?categorySlug=an-ninh/doi-song → nav + header đỏ + 1 big + grid nhỏ (fit màn hình)
+    // ══════════════════════════════════════════════
+    var latestByCat = ViewBag.LatestByCat as Dictionary<string, List<DaNangSafeMap.Models.Entities.Article>>
+                      ?? new Dictionary<string, List<DaNangSafeMap.Models.Entities.Article>>();
+    var isHome = string.IsNullOrEmpty(currentCat);
+
+    // Tin nóng ticker (global/category)
+    var tickerItems = latest.Take(6).Concat(featured.Skip(1)).Take(8).ToList();
+
+    // Helper: "x giờ trước" theo tiếng Việt
+    Func<DateTime?, string> humanTime = (dt) =>
+    {
+        if (dt == null) return "";
+        var diff = DateTime.Now - dt.Value;
+        if (diff.TotalMinutes < 1) return "vừa xong";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} phút trước";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} giờ trước";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} ngày trước";
+        return dt.Value.ToString("dd/MM/yyyy");
+    };
+
+    // Giả sub-cats cho block trang chủ (hiển thị decorative, click về chuyên mục gốc)
+    var subCatsMap = new Dictionary<string, string[]>
+    {
+        ["an-ninh"]  = new[] { "Tin mới", "Cảnh báo", "ATGT", "Vụ việc", "Phòng chống" },
+        ["doi-song"] = new[] { "Đô thị", "Môi trường", "Cộng đồng", "Văn hoá" }
+    };
+
+    <link rel="stylesheet" href="~/css/article-news.css" asp-append-version="true" />
+
+    <div class="bdn-page">
         @await Html.PartialAsync("_ArticleSubNav")
 
-        @if (currentCat == "an-ninh")
+        @if (tickerItems.Any())
         {
-            <!-- SUB-CATEGORY TABS CHO AN NINH -->
-            <div class="an-ninh-tabs" style="border-bottom: 2px solid var(--art-primary); margin-bottom: 24px; padding: 0 5%; display: flex; align-items: flex-end;">
-                <div style="padding: 10px 15px; background: var(--art-primary); color: white; font-weight: bold; font-family: var(--art-serif); border-radius: 4px 4px 0 0; text-transform: uppercase;">AN NINH - TRẬT TỰ</div>
-                <ul style="list-style: none; padding: 0 0 10px 20px; margin: 0; display: flex; gap: 20px; overflow-x: auto; white-space: nowrap;">
-                    <li style="color: var(--art-primary); cursor: pointer; font-weight: 600;" class="active-tab">Tất cả</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">Phòng chống tội phạm không gian mạng</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">Cảnh giác</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">ATGT</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">Vụ việc</li>
-                    <li style="color: #666; cursor: pointer; font-weight: 500;">Vụ án</li>
-                </ul>
-            </div>
-        }
-        else if (currentCat == "doi-song")
-        {
-            <!-- TIEU DE CHO ĐỜI SỐNG -->
-            <div class="an-ninh-tabs" style="border-bottom: 2px solid #2980b9; margin-bottom: 24px; padding: 0 5%;">
-                <h2 style="margin:0; padding: 10px 15px; display: inline-block; background: #2980b9; color: white; font-family: var(--art-serif); border-radius: 4px 4px 0 0; font-size: 16px;">ĐỜI SỐNG ĐÔ THỊ</h2>
+            <div class="bdn-ticker" role="region" aria-label="Tin nóng">
+                <div class="bdn-ticker__label">🔴 TIN NÓNG</div>
+                <div class="bdn-ticker__viewport">
+                    <div class="bdn-ticker__track">
+                        @foreach (var t in tickerItems)
+                        {
+                            <a class="bdn-ticker__item" href="/Article/Details/@t.Id">@t.Title</a>
+                            <span class="bdn-ticker__sep">•</span>
+                        }
+                        @foreach (var t in tickerItems)
+                        {
+                            <a class="bdn-ticker__item" href="/Article/Details/@t.Id">@t.Title</a>
+                            <span class="bdn-ticker__sep">•</span>
+                        }
+                    </div>
+                </div>
             </div>
         }
 
-        <div class="article-container">
-            <!-- HERO BLOCK -->
-            @if (mainArticle != null)
+        <div class="bdn-container">
+
+        @if (isHome)
+        {
+            // ══ TRANG CHỦ /Article ══
+            var topHero = featured.FirstOrDefault() ?? latest.FirstOrDefault();
+            var shortList = latest.Where(x => x != topHero).Take(5).ToList();
+            var topSide = featured.Where(x => x != topHero).Take(2).ToList();
+            if (topSide.Count < 2)
             {
-                <section class="art-hero">
-                    <div class="art-hero__main">
-                        <img src="@(mainArticle.ImageUrl ?? "/images/default-article.jpg")" alt="@mainArticle.Title" />
-                        <div class="art-hero__main-overlay">
-                            <span class="art-hero__main-cat">@(mainArticle.Category?.Name ?? "Tin tức")</span>
-                            <h1 class="art-hero__main-title"><a href="/Article/Details/@mainArticle.Id">@mainArticle.Title</a></h1>
-                            <p class="art-hero__main-summary">@mainArticle.Summary</p>
-                        </div>
-                    </div>
-                    <div class="art-hero__side">
-                        @foreach (var item in sideArticles)
+                foreach (var a in latest.Where(x => x != topHero && !topSide.Contains(x)))
+                {
+                    topSide.Add(a);
+                    if (topSide.Count >= 2) break;
+                }
+            }
+            var rightMain = topSide.FirstOrDefault();
+            var rightDuo  = latest.Where(x => x != topHero && !topSide.Contains(x)).Take(2).ToList();
+            var eventItems = featured.Concat(latest)
+                                     .Where(x => x != topHero && !topSide.Contains(x))
+                                     .GroupBy(x => x.Id).Select(g => g.First())
+                                     .Take(5).ToList();
+            var focusList = featured.Where(x => x != topHero).Concat(mostViewed).Concat(latest)
+                .GroupBy(x => x.Id).Select(g => g.First()).Take(12).ToList();
+
+            <section class="bdn-top">
+                <aside class="bdn-top__side">
+                    @foreach (var it in shortList)
+                    {
+                        <a class="bdn-brief" href="/Article/Details/@it.Id">
+                            <span class="bdn-brief__time">@humanTime(it.CreatedAt)</span>
+                            <h3 class="bdn-brief__title">@it.Title</h3>
+                        </a>
+                    }
+                </aside>
+
+                @if (topHero != null)
+                {
+                    <article class="bdn-top__hero">
+                        <a href="/Article/Details/@topHero.Id" class="bdn-top__hero-img">
+                            <img src="@(topHero.ImageUrl ?? "/images/default-article.jpg")" alt="@topHero.Title" />
+                        </a>
+                        <h2 class="bdn-top__hero-title">
+                            <a href="/Article/Details/@topHero.Id">@topHero.Title</a>
+                        </h2>
+                        @if (!string.IsNullOrEmpty(topHero.Summary))
                         {
-                            <div class="art-hero__side-item">
-                                <div class="art-hero__side-img">
-                                    <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" />
-                                </div>
-                                <div class="art-hero__side-content">
-                                    <h3 class="art-hero__side-title"><a href="/Article/Details/@item.Id">@item.Title</a></h3>
-                                    <span class="art-hero__side-time">@item.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
-                                </div>
-                            </div>
+                            <p class="bdn-top__hero-lead">
+                                <span class="bdn-lead-dno">ĐNO</span> — @topHero.Summary
+                            </p>
                         }
+                    </article>
+                }
+
+                @* Cột phải: 1 sidecard lớn + 2 cards nhỏ cạnh nhau + widget SỰ KIỆN BÌNH LUẬN (theo ảnh mẫu). *@
+                <aside class="bdn-top__right">
+                    @if (rightMain != null)
+                    {
+                        <a class="bdn-sidecard" href="/Article/Details/@rightMain.Id">
+                            <div class="bdn-sidecard__img">
+                                <img src="@(rightMain.ImageUrl ?? "/images/default-article.jpg")" alt="@rightMain.Title" />
+                            </div>
+                            <h3 class="bdn-sidecard__title">@rightMain.Title</h3>
+                        </a>
+                    }
+                    @if (rightDuo.Any())
+                    {
+                        <div class="bdn-sidecard__duo">
+                            @foreach (var d in rightDuo)
+                            {
+                                <a class="bdn-sidecard bdn-sidecard--sm" href="/Article/Details/@d.Id">
+                                    <div class="bdn-sidecard__img">
+                                        <img src="@(d.ImageUrl ?? "/images/default-article.jpg")" alt="@d.Title" />
+                                    </div>
+                                    <h4 class="bdn-sidecard__title-sm">@d.Title</h4>
+                                </a>
+                            }
+                        </div>
+                    }
+                    @if (eventItems.Any())
+                    {
+                        <div class="bdn-event" id="bdnEvent" data-count="@eventItems.Count">
+                            <header class="bdn-event__head">
+                                <span class="bdn-event__label">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    Sự kiện &amp; bình luận
+                                </span>
+                                <span class="bdn-event__nav">
+                                    <button type="button" class="bdn-event__btn" id="bdnEventPrev" aria-label="Trước">‹</button>
+                                    <button type="button" class="bdn-event__btn" id="bdnEventNext" aria-label="Sau">›</button>
+                                </span>
+                            </header>
+                            <div class="bdn-event__track">
+                                @for (int ei = 0; ei < eventItems.Count; ei++)
+                                {
+                                    var e = eventItems[ei];
+                                    <a class="bdn-event__body @(ei == 0 ? "is-active" : "")" href="/Article/Details/@e.Id" data-index="@ei">
+                                        <h4 class="bdn-event__title">@e.Title</h4>
+                                        @if (!string.IsNullOrEmpty(e.Summary))
+                                        {
+                                            <p class="bdn-event__sum">@e.Summary</p>
+                                        }
+                                        <div class="bdn-event__meta">
+                                            <strong>@(e.Author?.FullName ?? "BAN BIÊN TẬP")</strong>
+                                            <span>@(e.CreatedAt?.ToString("dd/MM/yyyy HH:mm"))</span>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+                </aside>
+            </section>
+
+            @* ═══ TIÊU ĐIỂM — slide ngang, card cùng kích cỡ, auto-step 4s, ‹ › nav ═══ *@
+            @if (focusList.Any())
+            {
+                <section class="bdn-focus" aria-label="Tin tiêu biểu">
+                    <header class="bdn-focus__head">
+                        <h2 class="bdn-focus__title">Tiêu điểm</h2>
+                    </header>
+                    <div class="bdn-focus__stage" id="bdnFocusStage" data-count="@focusList.Count">
+                        <button type="button" class="bdn-focus__nav bdn-focus__nav--prev" aria-label="Trước">‹</button>
+                        <div class="bdn-focus__viewport">
+                            <div class="bdn-focus__deck" id="bdnFocusDeck">
+                                @for (int fi = 0; fi < focusList.Count; fi++)
+                                {
+                                    var f = focusList[fi];
+                                    <a class="bdn-focus__card" href="/Article/Details/@f.Id" data-index="@fi">
+                                        <div class="bdn-focus__img">
+                                            <img src="@(f.ImageUrl ?? "/images/default-article.jpg")" alt="@f.Title" loading="lazy" />
+                                        </div>
+                                        <div class="bdn-focus__overlay">
+                                            <h3 class="bdn-focus__card-title">@f.Title</h3>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                        <button type="button" class="bdn-focus__nav bdn-focus__nav--next" aria-label="Sau">›</button>
                     </div>
                 </section>
             }
 
-            <!-- MỚI NHẤT + SIDEBAR -->
-            <div class="art-layout">
-                <div>
-                    <div class="art-section-header">
-                        <h2>📰 Tin mới nhất @(currentCat == "an-ninh" ? "- An ninh" : (currentCat == "doi-song" ? "- Đời sống" : "Tổng hợp"))</h2>
-                    </div>
-                    @if (latest.Any())
-                    {
-                        @foreach (var item in latest)
-                        {
-                            <div class="art-list-item">
-                                <div class="art-list-thumb">
-                                    <a href="/Article/Details/@item.Id">
-                                        <img src="@(item.ImageUrl ?? "/images/default-article.jpg")" alt="@item.Title" />
-                                    </a>
-                                </div>
-                                <div class="art-list-body">
-                                    <h3 class="art-list-title"><a href="/Article/Details/@item.Id">@item.Title</a></h3>
-                                    <p class="art-list-summary">@item.Summary</p>
-                                    <div class="art-list-meta">
-                                        <span style="color: var(--art-primary); font-weight: bold;">@item.Category?.Name</span>
-                                        <span style="margin: 0 6px;">|</span>
-                                        <span>📅 @item.CreatedAt?.ToString("dd/MM/yyyy")</span>
-                                        <span style="margin: 0 6px;">|</span>
-                                        <span>👁️ @(item.ViewCount ?? 0)</span>
-                                    </div>
-                                </div>
+            @* ═══ AN TOÀN KHÔNG GIAN MẠNG — laptop mockup + 2 side cards ═══ *@
+            <section class="bdn-aware" aria-label="An toàn không gian mạng">
+                <header class="bdn-aware__head">
+                    <span class="bdn-aware__eyebrow">PHÒNG CHỐNG LỪA ĐẢO TRỰC TUYẾN</span>
+                    <h2 class="bdn-aware__title">An toàn không gian mạng</h2>
+                    <p class="bdn-aware__lead">Cập nhật những thủ đoạn lừa đảo phổ biến và kỹ năng tự bảo vệ mình trên môi trường số.</p>
+                </header>
+
+                <div class="bdn-aware__rig" id="bdnAwareRig">
+                    <div class="bdn-aware__side bdn-aware__side--prev" id="bdnAwarePrev"></div>
+
+                    <button type="button" class="bdn-aware__arrow bdn-aware__arrow--prev" id="bdnAwareBtnPrev" aria-label="Trước">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    </button>
+
+                    <div class="bdn-aware__device">
+                        <div class="bdn-aware__bezel">
+                            <div class="bdn-aware__screen">
+                                @* Track chứa N slide, JS sẽ translateX để chuyển *@
+                                <div class="bdn-aware__track" id="bdnAwareTrack"></div>
                             </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="no-articles">
-                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                            <p>Không có bài viết nào trong mục này</p>
                         </div>
-                    }
+                        <div class="bdn-aware__base"></div>
+                        <div class="bdn-aware__dots" id="bdnAwareDots"></div>
+                    </div>
+
+                    <button type="button" class="bdn-aware__arrow bdn-aware__arrow--next" id="bdnAwareBtnNext" aria-label="Sau">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </button>
+
+                    <div class="bdn-aware__side bdn-aware__side--next" id="bdnAwareNext"></div>
                 </div>
 
-                <!-- SIDEBAR -->
-                <aside class="art-sidebar">
-                    <div class="art-sidebar-box">
-                        <div class="art-sidebar-box__header">🔥 Đọc nhiều nhất</div>
-                        @for (int i = 0; i < mostViewed.Count && i < 10; i++)
+                @* Kho dữ liệu nguồn — JS đọc từ đây để cập nhật màn hình laptop.
+                   Mỗi logo là một composite SVG 132x132 với halo nền + biểu tượng chính + accent. *@
+                <div class="bdn-aware__store" id="bdnAwareStore" style="display:none">
+                    <div data-title="Duyệt web an toàn" data-text="Cảnh báo khi truy cập trang web có dấu hiệu lừa đảo, mã độc hoặc giả mạo thương hiệu.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="aw1g" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#43a047"/><stop offset="1" stop-color="#1b5e20"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="66" cy="66" r="56" fill="#e8f5e9"/>
+                            <path d="M66 24l30 12v22c0 22-14 38-30 46-16-8-30-24-30-46V36z" fill="url(#aw1g)"/>
+                            <circle cx="66" cy="64" r="20" fill="#ffffff" opacity="0.95"/>
+                            <path d="M55 64l8 8 14-16" stroke="#1b5e20" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </svg>
+                    </div>
+                    <div data-title="Màn hình cảnh báo" data-text="Hệ thống tự động hiện cửa sổ cảnh báo khi bạn truy cập trang web có độ an toàn kém.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="66" cy="66" r="56" fill="#fff3e0"/>
+                            <rect x="22" y="34" width="88" height="58" rx="6" fill="#37474f"/>
+                            <rect x="28" y="40" width="76" height="46" rx="2" fill="#fafafa"/>
+                            <path d="M66 50l16 28H50z" fill="#ff9800"/>
+                            <rect x="64" y="58" width="4" height="10" rx="1" fill="#fff"/>
+                            <circle cx="66" cy="73" r="2" fill="#fff"/>
+                            <rect x="56" y="98" width="20" height="6" rx="2" fill="#37474f"/>
+                            <rect x="46" y="104" width="40" height="4" rx="2" fill="#90a4ae"/>
+                        </svg>
+                    </div>
+                    <div data-title="Kiểm tra liên kết" data-text="Chặn các đường link giả mạo, chứa mã độc hoặc dẫn tới website đã bị báo cáo lừa đảo.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="66" cy="66" r="56" fill="#e3f2fd"/>
+                            <path d="M48 66c0-8 6-14 14-14h10v10H62a4 4 0 0 0 0 8h10v10H62c-8 0-14-6-14-14z" fill="#1565c0"/>
+                            <path d="M84 66c0 8-6 14-14 14H60V70h10a4 4 0 0 0 0-8H60V52h10c8 0 14 6 14 14z" fill="#1976d2"/>
+                            <rect x="58" y="62" width="16" height="8" fill="#0d47a1"/>
+                            <circle cx="98" cy="42" r="14" fill="#ef5350"/>
+                            <path d="M92 36l12 12M104 36l-12 12" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div data-title="Bảo mật tài khoản" data-text="Bật xác thực hai lớp, đặt mật khẩu mạnh và không chia sẻ OTP cho bất kỳ ai.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="aw4g" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#7b1fa2"/><stop offset="1" stop-color="#4a148c"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="66" cy="66" r="56" fill="#f3e5f5"/>
+                            <path d="M66 22l34 14v22c0 24-16 42-34 50-18-8-34-26-34-50V36z" fill="url(#aw4g)"/>
+                            <rect x="48" y="62" width="36" height="28" rx="4" fill="#fff"/>
+                            <path d="M54 62v-8a12 12 0 0 1 24 0v8" stroke="#fff" stroke-width="4" fill="none"/>
+                            <circle cx="66" cy="74" r="3" fill="#7b1fa2"/>
+                            <rect x="64.5" y="74" width="3" height="8" fill="#7b1fa2"/>
+                        </svg>
+                    </div>
+                    <div data-title="Cảnh giác cuộc gọi giả mạo" data-text="Đối tượng giả danh công an, ngân hàng, viễn thông để chiếm đoạt tài sản — luôn kiểm tra lại qua kênh chính thức.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="66" cy="66" r="56" fill="#fce4ec"/>
+                            <path d="M44 28h22a8 8 0 0 1 8 8v60a8 8 0 0 1-8 8H44a8 8 0 0 1-8-8V36a8 8 0 0 1 8-8z" fill="#37474f"/>
+                            <rect x="40" y="36" width="30" height="50" rx="2" fill="#cfd8dc"/>
+                            <circle cx="55" cy="96" r="4" fill="#90a4ae"/>
+                            <path d="M55 50l10 18H45z" fill="#e53935"/>
+                            <rect x="53" y="55" width="4" height="8" rx="1" fill="#fff"/>
+                            <circle cx="55" cy="65" r="2" fill="#fff"/>
+                            <path d="M82 40c4 0 8 4 8 8M82 32c8 0 16 8 16 16M82 24c12 0 24 12 24 24" stroke="#e53935" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div data-title="Báo cáo nhanh 24/7" data-text="Khi phát hiện dấu hiệu lừa đảo, báo ngay cho cơ quan chức năng qua tổng đài 113 hoặc cổng SafeMap.">
+                        <svg viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="aw6g" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0" stop-color="#00897b"/><stop offset="1" stop-color="#004d40"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="66" cy="66" r="56" fill="#e0f7fa"/>
+                            <circle cx="66" cy="66" r="38" fill="url(#aw6g)"/>
+                            <circle cx="66" cy="66" r="32" fill="#ffffff"/>
+                            <path d="M66 46v22l14 8" stroke="#004d40" stroke-width="5" stroke-linecap="round" fill="none"/>
+                            <text x="66" y="100" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="800" fill="#004d40">24/7</text>
+                            <circle cx="66" cy="40" r="3" fill="#004d40"/>
+                            <circle cx="92" cy="66" r="3" fill="#004d40"/>
+                            <circle cx="66" cy="92" r="3" fill="#004d40"/>
+                            <circle cx="40" cy="66" r="3" fill="#004d40"/>
+                        </svg>
+                    </div>
+                </div>
+            </section>
+
+            @* Mỗi chuyên mục một block "header đỏ + 1 bài lớn bên trái + 4-6 bài nhỏ bên phải" *@
+            @foreach (var c in categories)
+            {
+                if (string.IsNullOrEmpty(c.Slug)) continue;
+                var items = latestByCat.GetValueOrDefault(c.Slug) ?? new List<DaNangSafeMap.Models.Entities.Article>();
+                if (!items.Any()) continue;
+                var big = items.First();
+                var rest = items.Skip(1).Take(6).ToList();
+                // Nếu chuyên mục có ít bài hơn 7, pad bằng latest để khung không còn khoảng trống.
+                if (rest.Count < 6)
+                {
+                    var pad = latest.Where(x => x.Id != big.Id && !rest.Any(r => r.Id == x.Id))
+                                    .Take(6 - rest.Count).ToList();
+                    rest.AddRange(pad);
+                }
+                var subCats = subCatsMap.ContainsKey(c.Slug) ? subCatsMap[c.Slug] : Array.Empty<string>();
+
+                <section class="bdn-block">
+                    <header class="bdn-block__head">
+                        <h2 class="bdn-block__title">
+                            <span class="bdn-block__rule"></span>
+                            <a href="/Article?categorySlug=@c.Slug">@c.Name.ToUpper()</a>
+                            <span class="bdn-block__rule"></span>
+                        </h2>
+                    </header>
+
+                    <div class="bdn-block__grid">
+                        <a class="bdn-big" href="/Article/Details/@big.Id">
+                            <div class="bdn-big__img">
+                                <img src="@(big.ImageUrl ?? "/images/default-article.jpg")" alt="@big.Title" />
+                            </div>
+                            <h3 class="bdn-big__title">@big.Title</h3>
+                            @if (!string.IsNullOrEmpty(big.Summary))
+                            {
+                                <p class="bdn-big__lead"><span class="bdn-lead-dno">ĐNO</span> — @big.Summary</p>
+                            }
+                        </a>
+
+                        <div class="bdn-minis">
+                            @foreach (var it in rest)
+                            {
+                                <a class="bdn-mini" href="/Article/Details/@it.Id">
+                                    <h4 class="bdn-mini__title">@it.Title</h4>
+                                    <div class="bdn-mini__img">
+                                        <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </section>
+            }
+        }
+        else
+        {
+            // ══ TRANG CHUYÊN MỤC /Article?categorySlug=... ══
+            //   Layout theo baodanang.vn/van-hoa-van-nghe:
+            //     • header catName + breadcrumb
+            //     • hero row: 1 bài lớn trái + 4 ô grid phải (2 có ảnh, 2 chỉ tiêu đề)
+            //     • body 2-col: list bài (thumb-left + title/date/summary) + aside widget
+            //       ĐỌC NHIỀU / TIN MỚI có đánh số 1-4.
+            var catObj  = categories.FirstOrDefault(x => x.Slug == currentCat);
+            var catName = catObj?.Name ?? currentCat ?? "";
+            var heroBig = latest.FirstOrDefault();
+            var topMinis = latest.Skip(1).Take(4).ToList();
+            var listItems = latest.Skip(5).ToList();
+            var popItems = (mostViewed ?? new List<DaNangSafeMap.Models.Entities.Article>()).Take(4).ToList();
+            var newItems = latest.Take(4).ToList();
+
+            <section class="bdn-cat">
+                <header class="bdn-cat__head">
+                    <h1 class="bdn-cat__title">@catName.ToUpper()</h1>
+                    <nav class="bdn-cat__crumb" aria-label="Breadcrumb">
+                        <a href="/Article">Trang chủ</a> / <span>@catName</span>
+                    </nav>
+                </header>
+
+                @if (heroBig != null)
+                {
+                    <div class="bdn-cat__top">
+                        <a class="bdn-cat__big" href="/Article/Details/@heroBig.Id">
+                            <div class="bdn-cat__big-img">
+                                <img src="@(heroBig.ImageUrl ?? "/images/default-article.jpg")" alt="@heroBig.Title" />
+                            </div>
+                            <h3 class="bdn-cat__big-title">@heroBig.Title</h3>
+                        </a>
+                        <div class="bdn-cat__mini4">
+                            @foreach (var it in topMinis)
+                            {
+                                <a class="bdn-cat__mini" href="/Article/Details/@it.Id">
+                                    <div class="bdn-cat__mini-img">
+                                        <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                                    </div>
+                                    <h4 class="bdn-cat__mini-title">@it.Title</h4>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="bdn-cat__grid">
+                    <div class="bdn-cat__list">
+                        @foreach (var it in listItems)
                         {
-                            <div class="art-sidebar-item">
-                                <span class="art-sidebar-num">@(i + 1)</span>
-                                <div class="art-sidebar-title">
-                                    <a href="/Article/Details/@mostViewed[i].Id">@mostViewed[i].Title</a>
+                            <article class="bdn-cat__row">
+                                <a class="bdn-cat__row-img" href="/Article/Details/@it.Id">
+                                    <img src="@(it.ImageUrl ?? "/images/default-article.jpg")" alt="@it.Title" />
+                                </a>
+                                <div class="bdn-cat__row-body">
+                                    <h3><a href="/Article/Details/@it.Id">@it.Title</a></h3>
+                                    <div class="bdn-cat__row-meta">
+                                        <span class="bdn-cat__row-cat">@catName</span>
+                                        <span class="bdn-cat__row-date">@it.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(it.Summary))
+                                    {
+                                        <p class="bdn-cat__row-sum">@it.Summary</p>
+                                    }
                                 </div>
+                            </article>
+                        }
+                        @if (!listItems.Any() && heroBig == null)
+                        {
+                            <div class="bdn-empty" style="padding:40px 0;color:var(--bdn-muted);text-align:center;">
+                                Chưa có bài viết nào trong chuyên mục này.
                             </div>
                         }
                     </div>
-                </aside>
-            </div>
-        </div>
+
+                    <aside class="bdn-cat__aside">
+                        <div class="bdn-cat__tabs" role="tablist">
+                            <button class="bdn-cat__tab is-active" data-target="pop" type="button">Đọc nhiều</button>
+                            <button class="bdn-cat__tab" data-target="new" type="button">Tin mới</button>
+                        </div>
+                        <ol class="bdn-cat__rank" data-tab="pop">
+                            @for (int i = 0; i < popItems.Count; i++)
+                            {
+                                var p = popItems[i];
+                                <li>
+                                    <div class="bdn-cat__rank-num">@(i + 1)</div>
+                                    <div class="bdn-cat__rank-img">
+                                        <img src="@(p.ImageUrl ?? "/images/default-article.jpg")" alt="@p.Title" />
+                                    </div>
+                                    <div class="bdn-cat__rank-body">
+                                        <a href="/Article/Details/@p.Id">@p.Title</a>
+                                    </div>
+                                </li>
+                            }
+                        </ol>
+                        <ol class="bdn-cat__rank is-hidden" data-tab="new">
+                            @for (int i = 0; i < newItems.Count; i++)
+                            {
+                                var p = newItems[i];
+                                <li>
+                                    <div class="bdn-cat__rank-num">@(i + 1)</div>
+                                    <div class="bdn-cat__rank-img">
+                                        <img src="@(p.ImageUrl ?? "/images/default-article.jpg")" alt="@p.Title" />
+                                    </div>
+                                    <div class="bdn-cat__rank-body">
+                                        <a href="/Article/Details/@p.Id">@p.Title</a>
+                                    </div>
+                                </li>
+                            }
+                        </ol>
+                    </aside>
+                </div>
+            </section>
+        }
+
+        </div>@* /bdn-container *@
 
         @if (userId != null && role != "Admin")
         {
@@ -406,9 +830,187 @@ else
                 <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </a>
         }
+
+        @await Html.PartialAsync("_SiteFooter")
     </div>
+
 }
 
 @section Scripts {
     <script src="~/js/article.js"></script>
+    <script>
+        // ── Tiêu điểm: slide ngang, card cùng kích cỡ, bước 1 bài / 4s ──
+        (function(){
+            var stage = document.getElementById('bdnFocusStage');
+            var deck  = document.getElementById('bdnFocusDeck');
+            if (!stage || !deck) return;
+            var cards = Array.prototype.slice.call(deck.querySelectorAll('.bdn-focus__card'));
+            var n = cards.length;
+            if (n === 0) return;
+
+            var viewport = stage.querySelector('.bdn-focus__viewport');
+            var current = 0;
+            var timer = null;
+            var interval = 4000;
+
+            function cardW(){
+                var c = cards[0];
+                return c ? c.getBoundingClientRect().width : 0;
+            }
+            function gapW(){
+                var cs = getComputedStyle(deck);
+                return parseFloat(cs.columnGap || cs.gap) || 0;
+            }
+            function step(){ return cardW() + gapW(); }
+            function render(){
+                // Đo không gian khả dụng tự nhiên: reset width trước rồi đọc clientWidth.
+                viewport.style.width = '';
+                var avail = viewport.clientWidth;
+                var s = step();
+                if (s <= 0) return;
+                var v = Math.max(1, Math.floor((avail + gapW()) / s));
+                v = Math.min(n, v);
+                var width = v * cardW() + Math.max(0, v - 1) * gapW();
+                // Co viewport cho khớp đúng số card hiển thị — không còn thừa mép phải.
+                viewport.style.width = width + 'px';
+
+                var maxStart = Math.max(0, n - v);
+                if (current < 0) current = maxStart;
+                if (current > maxStart) current = 0;
+                deck.style.transform = 'translateX(' + (-current * step()) + 'px)';
+            }
+            function go(delta){ current += delta; render(); }
+            function start(){ if (timer) return; timer = setInterval(function(){ go(1); }, interval); }
+            function stop(){ if (timer){ clearInterval(timer); timer = null; } }
+
+            stage.querySelector('.bdn-focus__nav--prev').addEventListener('click', function(){ go(-1); stop(); start(); });
+            stage.querySelector('.bdn-focus__nav--next').addEventListener('click', function(){ go( 1); stop(); start(); });
+            stage.addEventListener('mouseenter', stop);
+            stage.addEventListener('mouseleave', start);
+            window.addEventListener('resize', render);
+
+            render();
+            start();
+        })();
+
+        // ── An toàn không gian mạng — laptop mockup carousel (slide ngang) ──
+        (function(){
+            var rig    = document.getElementById('bdnAwareRig');
+            var store  = document.getElementById('bdnAwareStore');
+            var track  = document.getElementById('bdnAwareTrack');
+            var dotsEl = document.getElementById('bdnAwareDots');
+            var btnPrev = document.getElementById('bdnAwareBtnPrev');
+            var btnNext = document.getElementById('bdnAwareBtnNext');
+            var prevSide = document.getElementById('bdnAwarePrev');
+            var nextSide = document.getElementById('bdnAwareNext');
+            if (!rig || !store || !track) return;
+
+            var sources = Array.prototype.slice.call(store.querySelectorAll(':scope > div[data-title]'));
+            var items = sources.map(function(d){
+                return {
+                    title: d.getAttribute('data-title') || '',
+                    text:  d.getAttribute('data-text')  || '',
+                    svg:   d.innerHTML.trim()
+                };
+            });
+            var n = items.length;
+            if (!n) return;
+
+            // Build slides
+            track.innerHTML = items.map(function(it){
+                return '<div class="bdn-aware__slide">' +
+                            '<div class="bdn-aware__icon" aria-hidden="true">' + it.svg + '</div>' +
+                            '<div class="bdn-aware__panel">' +
+                                '<h3 class="bdn-aware__panel-title">' + it.title + '</h3>' +
+                                '<p class="bdn-aware__panel-text">' + it.text + '</p>' +
+                            '</div>' +
+                        '</div>';
+            }).join('');
+            var slideEls = Array.prototype.slice.call(track.querySelectorAll('.bdn-aware__slide'));
+
+            // Build dots
+            for (var i = 0; i < n; i++){
+                (function(k){
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'bdn-aware__dot';
+                    b.setAttribute('aria-label', 'Tới mục ' + (k+1));
+                    b.addEventListener('click', function(){ setActive(k); restart(); });
+                    dotsEl.appendChild(b);
+                })(i);
+            }
+            var dotEls = Array.prototype.slice.call(dotsEl.querySelectorAll('.bdn-aware__dot'));
+
+            var current = 0;
+            var timer = null;
+            var interval = 5000;
+
+            function setActive(idx){
+                idx = ((idx % n) + n) % n;
+                current = idx;
+                track.style.transform = 'translateX(' + (-current * 100) + '%)';
+
+                var prev = items[(current - 1 + n) % n];
+                var next = items[(current + 1) % n];
+                if (prevSide) prevSide.textContent = prev.title;
+                if (nextSide) nextSide.textContent = next.title;
+
+                slideEls.forEach(function(s, k){
+                    s.classList.toggle('is-active', k === current);
+                });
+                dotEls.forEach(function(d, k){
+                    d.classList.toggle('is-active', k === current);
+                });
+            }
+
+            function go(d){ setActive(current + d); }
+            function start(){ if (timer) return; timer = setInterval(function(){ go(1); }, interval); }
+            function stop(){ if (timer){ clearInterval(timer); timer = null; } }
+            function restart(){ stop(); start(); }
+
+            if (btnPrev) btnPrev.addEventListener('click', function(){ go(-1); restart(); });
+            if (btnNext) btnNext.addEventListener('click', function(){ go( 1); restart(); });
+            if (prevSide) prevSide.addEventListener('click', function(){ go(-1); restart(); });
+            if (nextSide) nextSide.addEventListener('click', function(){ go( 1); restart(); });
+            rig.addEventListener('mouseenter', stop);
+            rig.addEventListener('mouseleave', start);
+
+            setActive(0);
+            start();
+        })();
+
+        // ── Sự kiện & bình luận widget: prev/next cycle ──
+        (function(){
+            var box = document.getElementById('bdnEvent');
+            if (!box) return;
+            var items = Array.prototype.slice.call(box.querySelectorAll('.bdn-event__body'));
+            if (items.length <= 1) return;
+            var idx = 0;
+            function show(i){
+                idx = (i + items.length) % items.length;
+                items.forEach(function(el, k){ el.classList.toggle('is-active', k === idx); });
+            }
+            var prev = document.getElementById('bdnEventPrev');
+            var next = document.getElementById('bdnEventNext');
+            if (prev) prev.addEventListener('click', function(e){ e.preventDefault(); show(idx - 1); });
+            if (next) next.addEventListener('click', function(e){ e.preventDefault(); show(idx + 1); });
+        })();
+
+        // ── Category page: ĐỌC NHIỀU / TIN MỚI tab toggle ──
+        (function(){
+            var tabs = document.querySelectorAll('.bdn-cat__tab');
+            if (!tabs.length) return;
+            tabs.forEach(function(t){
+                t.addEventListener('click', function(){
+                    var target = t.getAttribute('data-target');
+                    document.querySelectorAll('.bdn-cat__tab').forEach(function(x){ x.classList.remove('is-active'); });
+                    t.classList.add('is-active');
+                    document.querySelectorAll('.bdn-cat__rank').forEach(function(o){
+                        if (o.getAttribute('data-tab') === target) o.classList.remove('is-hidden');
+                        else o.classList.add('is-hidden');
+                    });
+                });
+            });
+        })();
+    </script>
 }

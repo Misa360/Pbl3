@@ -10,13 +10,11 @@ namespace DaNangSafeMap.Controllers
     {
         private readonly IArticleService _articleService;
         private readonly IWebHostEnvironment _env;
-        private readonly IServiceScopeFactory _scopeFactory;
 
-        public ArticleController(IArticleService articleService, IWebHostEnvironment env, IServiceScopeFactory scopeFactory)
+        public ArticleController(IArticleService articleService, IWebHostEnvironment env)
         {
             _articleService = articleService;
             _env = env;
-            _scopeFactory = scopeFactory;
         }
 
         // ══════════════════════════════════════════════
@@ -54,7 +52,7 @@ namespace DaNangSafeMap.Controllers
         // DANH SÁCH BÀI VIẾT TỔNG HỢP (Home, Category, Admin, Personal)
         // ══════════════════════════════════════════════
         [HttpGet]
-        public async Task<IActionResult> Index(string? categorySlug = null, string? mode = null, int page = 1)
+        public async Task<IActionResult> Index(string? categorySlug = null, string? mode = null, int page = 1, string? q = null)
         {
             var userId = GetCurrentUserId();
             var role = GetCurrentUserRole();
@@ -64,6 +62,18 @@ namespace DaNangSafeMap.Controllers
             ViewBag.CurrentPage = page;
             ViewBag.UserId = userId;
             ViewBag.Role = role;
+            ViewBag.Query = q;
+
+            // Search mode — when ?q=... is supplied, show results instead of normal layout.
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                ViewBag.Mode = "search";
+                ViewBag.Categories = await _articleService.GetCategoriesAsync();
+                ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(6);
+                var results = await _articleService.SearchArticlesAsync(q, 40);
+                ViewBag.Latest = results;
+                return View("Index", new List<Article>());
+            }
 
             if (mode == "admin")
             {
@@ -81,46 +91,36 @@ namespace DaNangSafeMap.Controllers
                 return View("Index", myArticles);
             }
 
-            // Public Mode (Home / Category) - Nạp dữ liệu SONG SONG để tối ưu tốc độ
-            var categoriesTask = Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var svc = scope.ServiceProvider.GetRequiredService<IArticleService>();
-                return await svc.GetCategoriesAsync();
-            });
+            // Public Mode (Home / Category).
+            //
+            // NOTE: previously this used 4 × Task.Run with separate scopes so the
+            // queries ran "in parallel". On cold start that opened 4 simultaneous
+            // MySQL connections and made the page take ~10s. EF Core I/O is already
+            // async, so sequential await on ONE DbContext reuses a single pooled
+            // connection and is actually faster in practice. Responses are also
+            // cached in-memory inside ArticleService (see AddMemoryCache), so after
+            // the first hit subsequent loads skip the DB entirely until the TTL
+            // expires or a moderator action invalidates the cache.
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.Featured = await _articleService.GetFeaturedArticlesAsync(4, categorySlug);
+            ViewBag.Latest = await _articleService.GetLatestArticlesAsync(
+                string.IsNullOrEmpty(categorySlug) ? 12 : 24, categorySlug);
+            ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(10);
 
-            var mostViewedTask = Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var svc = scope.ServiceProvider.GetRequiredService<IArticleService>();
-                return await svc.GetMostViewedArticlesAsync(10);
-            });
-
-            var featuredTask = Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var svc = scope.ServiceProvider.GetRequiredService<IArticleService>();
-                return await svc.GetFeaturedArticlesAsync(4, categorySlug);
-            });
-
-            var latestTask = Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var svc = scope.ServiceProvider.GetRequiredService<IArticleService>();
-                return await svc.GetLatestArticlesAsync(string.IsNullOrEmpty(categorySlug) ? 10 : 20, categorySlug);
-            });
-
-            // Chờ tất cả các task hoàn thành cùng lúc
-            await Task.WhenAll(categoriesTask, mostViewedTask, featuredTask, latestTask);
-
-            ViewBag.Categories = categoriesTask.Result;
-            ViewBag.MostViewed = mostViewedTask.Result;
-            ViewBag.Featured = featuredTask.Result;
-            ViewBag.Latest = latestTask.Result;
-            
-            if (string.IsNullOrEmpty(categorySlug)) 
+            if (string.IsNullOrEmpty(categorySlug))
             {
                 ViewBag.Mode = "home";
+
+                // Build per-category latest lists for the home page's section blocks
+                // (kiểu báo Đà Nẵng: mỗi chuyên mục một block "header đỏ + 1 bài lớn + 6 bài nhỏ").
+                var byCat = new Dictionary<string, List<Article>>();
+                var cats = ViewBag.Categories as List<Category> ?? new();
+                foreach (var c in cats)
+                {
+                    if (string.IsNullOrEmpty(c.Slug)) continue;
+                    byCat[c.Slug] = await _articleService.GetLatestArticlesAsync(7, c.Slug);
+                }
+                ViewBag.LatestByCat = byCat;
             }
 
             return View("Index", new List<Article>());
@@ -141,11 +141,15 @@ namespace DaNangSafeMap.Controllers
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             await _articleService.IncrementViewCountAsync(id, ip, userId);
 
-            ViewBag.Related = await _articleService.GetRelatedArticlesAsync(id, 6);
-            ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(5);
-            ViewBag.LatestSameCategory = await _articleService.GetLatestArticlesAsync(6, article.Category?.Slug);
+            ViewBag.Related = await _articleService.GetRelatedArticlesAsync(id, 10);
+            ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(6);
+            ViewBag.LatestSameCategory = await _articleService.GetLatestArticlesAsync(20, article.Category?.Slug);
             ViewBag.UserId = userId;
             ViewBag.Role = GetCurrentUserRole();
+
+            // Để sub-nav highlight đúng mục (An ninh / Đời sống) khi đọc Details
+            ViewBag.CurrentCategory = article.Category?.Slug;
+            ViewBag.Mode = "details";
 
             return View("Details", article);
         }
@@ -200,6 +204,109 @@ namespace DaNangSafeMap.Controllers
 
             if (role == "Admin") return RedirectToAction("Index", new { mode = "admin" });
             return RedirectToAction("Index", new { mode = "my" });
+        }
+
+        // ══════════════════════════════════════════════
+        // ADMIN — WP-style management page
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Manage(string status = "all", string? q = null,
+            int? categoryId = null, int page = 1, string? view = null)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            const int pageSize = 20;
+            var (items, total, cAll, cPub, cDraft, cTrash) =
+                await _articleService.GetAdminArticlesAsync(status, q, categoryId, page, pageSize);
+
+            ViewBag.Status = status;
+            ViewBag.Query = q;
+            ViewBag.CategoryId = categoryId;
+            ViewBag.View = view;
+            ViewBag.CurrentPage = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.Total = total;
+            ViewBag.CountAll = cAll;
+            ViewBag.CountPublished = cPub;
+            ViewBag.CountDraft = cDraft;
+            ViewBag.CountTrash = cTrash;
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.UserId = GetCurrentUserId();
+            ViewBag.Role = role;
+
+            return View("Manage", items);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkAction(int[] ids, string action, string? returnStatus = "all", string? q = null, int? categoryId = null)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            int affected = 0;
+            string msg = "";
+            switch (action)
+            {
+                case "trash":
+                    affected = await _articleService.BulkTrashAsync(ids ?? Array.Empty<int>());
+                    msg = $"Đã chuyển {affected} bài viết vào thùng rác.";
+                    break;
+                case "restore":
+                    affected = await _articleService.BulkRestoreAsync(ids ?? Array.Empty<int>());
+                    msg = $"Đã khôi phục {affected} bài viết.";
+                    break;
+                case "permdelete":
+                    affected = await _articleService.BulkPermanentDeleteAsync(ids ?? Array.Empty<int>());
+                    msg = $"Đã xóa vĩnh viễn {affected} bài viết.";
+                    break;
+                default:
+                    msg = "Tác vụ không hợp lệ.";
+                    break;
+            }
+            TempData["AdminMsg"] = msg;
+            return RedirectToAction("Manage", new { status = returnStatus, q, categoryId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Duplicate(int id, string? returnStatus = "all")
+        {
+            var role = GetCurrentUserRole();
+            var userId = GetCurrentUserId();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            var copy = await _articleService.DuplicateArticleAsync(id, userId.Value);
+            TempData["AdminMsg"] = copy != null
+                ? $"Đã tạo bản sao bài viết #{copy.Id}."
+                : "Không tìm thấy bài để sao chép.";
+            return RedirectToAction("Manage", new { status = returnStatus });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> QuickEdit(int id, string title, string? slug,
+            int categoryId, int statusValue, bool isFeatured, string? returnStatus = "all", string? q = null)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            var ok = await _articleService.QuickUpdateAsync(id, title, slug, categoryId, statusValue, isFeatured);
+            TempData["AdminMsg"] = ok ? "Đã lưu thay đổi nhanh." : "Không tìm thấy bài viết.";
+            return RedirectToAction("Manage", new { status = returnStatus, q });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleFeatured(int id, string? returnStatus = "all")
+        {
+            var role = GetCurrentUserRole();
+            var userId = GetCurrentUserId();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            await _articleService.ToggleFeaturedArticleAsync(id, userId.Value);
+            return RedirectToAction("Manage", new { status = returnStatus });
         }
 
         // ══════════════════════════════════════════════

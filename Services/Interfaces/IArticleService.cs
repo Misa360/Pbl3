@@ -17,6 +17,9 @@ namespace DaNangSafeMap.Services.Interfaces
         Task<bool> DeleteArticleAsync(int id, int userId);
         Task IncrementViewCountAsync(int id, string? ipAddress, int? userId);
 
+        // ── Search ──
+        Task<List<Article>> SearchArticlesAsync(string keyword, int take = 30);
+
         // ── User's articles ──
         Task<List<Article>> GetUserArticlesAsync(int userId);
 
@@ -36,6 +39,15 @@ namespace DaNangSafeMap.Services.Interfaces
         Task<bool> ApproveArticleAsync(int articleId, int moderatorId);
         Task<bool> RejectArticleAsync(int articleId, int moderatorId, string reason);
         Task<bool> ToggleFeaturedArticleAsync(int articleId, int moderatorId);
+
+        // ── Admin: WP-style management ──
+        Task<(List<Article> items, int total, int countAll, int countPublished, int countDraft, int countTrash)>
+            GetAdminArticlesAsync(string status, string? q, int? categoryId, int page, int pageSize);
+        Task<int> BulkTrashAsync(int[] ids);
+        Task<int> BulkRestoreAsync(int[] ids);
+        Task<int> BulkPermanentDeleteAsync(int[] ids);
+        Task<Article?> DuplicateArticleAsync(int id, int currentUserId);
+        Task<bool> QuickUpdateAsync(int id, string title, string? slug, int categoryId, int status, bool isFeatured);
 
         // ── Categories ──
         Task<List<Category>> GetCategoriesAsync();

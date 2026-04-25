@@ -1,39 +1,34 @@
 @{
     var activeSlug  = ViewBag.CurrentCategory as string ?? "";
     var activeMode  = ViewBag.Mode as string ?? "";
-    var userId      = ViewBag.UserId as int?;
-    var role        = ViewBag.Role as string;
 
-    // Determine current active link from request path
     var path = Context.Request.Path.Value ?? "";
     var isWiki    = path.Contains("/SafeWiki",    StringComparison.OrdinalIgnoreCase);
-    var isHotline = path.Contains("/Hotline",     StringComparison.OrdinalIgnoreCase);
-    var isCreate  = path.Contains("/Create",      StringComparison.OrdinalIgnoreCase);
-    var isMy      = activeMode == "my";
     var isAnNinh  = activeSlug == "an-ninh";
     var isDoiSong = activeSlug == "doi-song";
-    var isHome    = activeMode == "home" || (!isAnNinh && !isDoiSong && !isWiki && !isHotline && !isMy && !isCreate);
+    var isDetails = activeMode == "details";
+    var isHome    = activeMode == "home" || (!isAnNinh && !isDoiSong && !isWiki && !isDetails);
+    var q         = (Context.Request.Query["q"].ToString()) ?? "";
 }
 
 <nav class="art-subnav">
     <div class="art-subnav__inner">
-        <!-- Left: category links -->
-        <a href="/Article" class="@(isHome ? "active" : "")">🏠 Trang chủ</a>
-        <a href="/Article/Index?categorySlug=an-ninh" class="@(isAnNinh ? "active" : "")">🛡️ An ninh</a>
-        <a href="/Article/Index?categorySlug=doi-song" class="@(isDoiSong ? "active" : "")">🏘️ Đời sống</a>
-        <a href="/Article/SafeWiki" class="@(isWiki ? "active" : "")">📖 SafeWiki</a>
-        <a href="/Article/Hotline" class="@(isHotline ? "active" : "")">📞 Hotline</a>
-        @if (userId != null && role != "Admin")
-        {
-            <a href="/Article/Index?mode=my" class="@(isMy || isCreate ? "active" : "")">📝 Tin của tôi</a>
-        }
+        <a href="/Article" class="art-subnav__home @(isHome ? "active" : "")" aria-label="Trang chủ tin tức" title="Trang chủ tin tức">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 11.5 12 4l9 7.5"/>
+                <path d="M5 10.5V20a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1v-9.5"/>
+            </svg>
+        </a>
+        <a href="/Article/Index?categorySlug=an-ninh" class="@(isAnNinh ? "active" : "")">An ninh</a>
+        <a href="/Article/Index?categorySlug=doi-song" class="@(isDoiSong ? "active" : "")">Đời sống</a>
+        <a href="/Article/SafeWiki" class="@(isWiki ? "active" : "")">SafeWiki</a>
 
-        <!-- Right: search + today's date -->
         <div class="art-subnav__right">
-            <div class="art-subnav-search">
+            <form class="art-subnav-search" action="/Article" method="get" role="search">
                 <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input id="subnav-search" type="text" placeholder="Tìm kiếm..." onkeydown="if(event.key==='Enter'){ window.location='/Article?q='+encodeURIComponent(this.value); }" />
-            </div>
+                <input id="subnav-search" name="q" type="text" placeholder="Tìm kiếm tin tức..." value="@q" autocomplete="off" />
+                <button type="submit" aria-label="Tìm kiếm" class="art-subnav-search__btn">Tìm</button>
+            </form>
             <div class="art-subnav-date" id="subnav-date"></div>
         </div>
     </div>
