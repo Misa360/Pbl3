@@ -926,6 +926,7 @@ else if (mode == "public" || mode == "home")
                             '</div>' +
                         '</div>';
             }).join('');
+            var slideEls = Array.prototype.slice.call(track.querySelectorAll('.bdn-aware__slide'));
 
             // Build dots
             for (var i = 0; i < n; i++){
@@ -954,6 +955,9 @@ else if (mode == "public" || mode == "home")
                 if (prevSide) prevSide.textContent = prev.title;
                 if (nextSide) nextSide.textContent = next.title;
 
+                slideEls.forEach(function(s, k){
+                    s.classList.toggle('is-active', k === current);
+                });
                 dotEls.forEach(function(d, k){
                     d.classList.toggle('is-active', k === current);
                 });

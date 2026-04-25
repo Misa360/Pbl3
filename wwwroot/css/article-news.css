@@ -916,7 +916,7 @@
     background: rgba(0,0,0,0.08);
 }
 
-/* Icon trong từng slide */
+/* Icon trong từng slide — mặc định ẩn, chỉ slide active mới hiện (fade-in) */
 .bdn-aware__icon {
     width: 156px; height: 156px;
     margin: 0 auto -56px; /* overlap xuống panel ~56px */
@@ -924,6 +924,13 @@
     background: transparent;
     z-index: 2;
     position: relative;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.94);
+    transition: opacity 380ms ease 80ms, transform 380ms ease 80ms;
+}
+.bdn-aware__slide.is-active .bdn-aware__icon {
+    opacity: 1;
+    transform: translateY(0) scale(1);
 }
 .bdn-aware__icon svg { width: 156px; height: 156px; display: block; }
 
