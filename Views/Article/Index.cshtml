@@ -544,27 +544,26 @@ else if (mode == "public" || mode == "home")
 
                 <div class="bdn-aware__rig" id="bdnAwareRig">
                     <div class="bdn-aware__side bdn-aware__side--prev" id="bdnAwarePrev"></div>
-                    <button type="button" class="bdn-aware__arrow bdn-aware__arrow--prev" aria-label="Trước">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-                    </button>
 
                     <div class="bdn-aware__device">
                         <div class="bdn-aware__bezel">
                             <div class="bdn-aware__screen">
-                                <div class="bdn-aware__icon" id="bdnAwareIcon" aria-hidden="true"></div>
-                                <div class="bdn-aware__panel">
-                                    <h3 class="bdn-aware__panel-title" id="bdnAwareTitle"></h3>
-                                    <p class="bdn-aware__panel-text" id="bdnAwareText"></p>
-                                </div>
+                                @* Track chứa N slide, JS sẽ translateX để chuyển *@
+                                <div class="bdn-aware__track" id="bdnAwareTrack"></div>
+
+                                @* Mũi tên ‹ › NẰM TRONG màn hình laptop *@
+                                <button type="button" class="bdn-aware__arrow bdn-aware__arrow--prev" id="bdnAwareBtnPrev" aria-label="Trước">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
+                                </button>
+                                <button type="button" class="bdn-aware__arrow bdn-aware__arrow--next" id="bdnAwareBtnNext" aria-label="Sau">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                                </button>
                             </div>
                         </div>
                         <div class="bdn-aware__base"></div>
                         <div class="bdn-aware__dots" id="bdnAwareDots"></div>
                     </div>
 
-                    <button type="button" class="bdn-aware__arrow bdn-aware__arrow--next" aria-label="Sau">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    </button>
                     <div class="bdn-aware__side bdn-aware__side--next" id="bdnAwareNext"></div>
                 </div>
 
@@ -894,17 +893,17 @@ else if (mode == "public" || mode == "home")
             start();
         })();
 
-        // ── An toàn không gian mạng — laptop mockup carousel ──
+        // ── An toàn không gian mạng — laptop mockup carousel (slide ngang) ──
         (function(){
             var rig    = document.getElementById('bdnAwareRig');
             var store  = document.getElementById('bdnAwareStore');
-            var iconEl = document.getElementById('bdnAwareIcon');
-            var titleEl= document.getElementById('bdnAwareTitle');
-            var textEl = document.getElementById('bdnAwareText');
+            var track  = document.getElementById('bdnAwareTrack');
             var dotsEl = document.getElementById('bdnAwareDots');
+            var btnPrev = document.getElementById('bdnAwareBtnPrev');
+            var btnNext = document.getElementById('bdnAwareBtnNext');
             var prevSide = document.getElementById('bdnAwarePrev');
             var nextSide = document.getElementById('bdnAwareNext');
-            if (!rig || !store) return;
+            if (!rig || !store || !track) return;
 
             var sources = Array.prototype.slice.call(store.querySelectorAll(':scope > div[data-title]'));
             var items = sources.map(function(d){
@@ -916,6 +915,17 @@ else if (mode == "public" || mode == "home")
             });
             var n = items.length;
             if (!n) return;
+
+            // Build slides
+            track.innerHTML = items.map(function(it){
+                return '<div class="bdn-aware__slide">' +
+                            '<div class="bdn-aware__icon" aria-hidden="true">' + it.svg + '</div>' +
+                            '<div class="bdn-aware__panel">' +
+                                '<h3 class="bdn-aware__panel-title">' + it.title + '</h3>' +
+                                '<p class="bdn-aware__panel-text">' + it.text + '</p>' +
+                            '</div>' +
+                        '</div>';
+            }).join('');
 
             // Build dots
             for (var i = 0; i < n; i++){
@@ -937,22 +947,10 @@ else if (mode == "public" || mode == "home")
             function setActive(idx){
                 idx = ((idx % n) + n) % n;
                 current = idx;
-                var item = items[current];
+                track.style.transform = 'translateX(' + (-current * 100) + '%)';
+
                 var prev = items[(current - 1 + n) % n];
                 var next = items[(current + 1) % n];
-
-                // Tạm fade out để swap mượt.
-                iconEl.classList.remove('is-active');
-                iconEl.classList.add('is-fading');
-
-                window.setTimeout(function(){
-                    iconEl.innerHTML = item.svg;
-                    titleEl.textContent = item.title;
-                    textEl.textContent  = item.text;
-                    iconEl.classList.remove('is-fading');
-                    iconEl.classList.add('is-active');
-                }, 180);
-
                 if (prevSide) prevSide.textContent = prev.title;
                 if (nextSide) nextSide.textContent = next.title;
 
@@ -966,8 +964,8 @@ else if (mode == "public" || mode == "home")
             function stop(){ if (timer){ clearInterval(timer); timer = null; } }
             function restart(){ stop(); start(); }
 
-            rig.querySelector('.bdn-aware__arrow--prev').addEventListener('click', function(){ go(-1); restart(); });
-            rig.querySelector('.bdn-aware__arrow--next').addEventListener('click', function(){ go( 1); restart(); });
+            if (btnPrev) btnPrev.addEventListener('click', function(){ go(-1); restart(); });
+            if (btnNext) btnNext.addEventListener('click', function(){ go( 1); restart(); });
             if (prevSide) prevSide.addEventListener('click', function(){ go(-1); restart(); });
             if (nextSide) nextSide.addEventListener('click', function(){ go( 1); restart(); });
             rig.addEventListener('mouseenter', stop);
