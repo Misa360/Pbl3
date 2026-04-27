@@ -199,6 +199,77 @@ namespace DaNangSafeMap.Controllers
         }
 
         // ══════════════════════════════════════════════
+        // CHỈNH SỬA BÀI VIẾT
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+            if (userId == null) return Redirect("/Auth/Login");
+
+            var article = await _articleService.GetArticleByIdAsync(id);
+            if (article == null) return NotFound();
+
+            // Chỉ Admin hoặc tác giả mới được sửa
+            if (role != "Admin" && article.AuthorId != userId.Value) return Forbid();
+
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.Role = role;
+            return View("Edit", article);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Edit(int id, string title, string summary, string content,
+            int categoryId, IFormFile? image, bool isFeatured = false)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+            if (userId == null) return Unauthorized();
+
+            var existing = await _articleService.GetArticleByIdAsync(id);
+            if (existing == null) return NotFound();
+            if (role != "Admin" && existing.AuthorId != userId.Value) return Forbid();
+
+            string? imageUrl = existing.ImageUrl;
+            if (image != null && image.Length > 0)
+            {
+                var uploadsDir = Path.Combine(_env.WebRootPath, "uploads", "articles");
+                Directory.CreateDirectory(uploadsDir);
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(image.FileName)}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await image.CopyToAsync(stream);
+                imageUrl = $"/uploads/articles/{fileName}";
+            }
+
+            var updated = new Article
+            {
+                Title = title,
+                Summary = summary,
+                Content = content,
+                CategoryId = categoryId,
+                ImageUrl = imageUrl,
+            };
+
+            // Admin có quyền cập nhật bất kỳ bài nào (kể cả của user khác).
+            // Service hiện tại chỉ cho author tự sửa, nên với Admin ta đi đường QuickUpdate
+            // để bypass author-check, và cập nhật riêng nội dung qua context.
+            if (role == "Admin")
+            {
+                await _articleService.AdminUpdateArticleAsync(id, title, summary, content, categoryId, imageUrl, isFeatured);
+                TempData["AdminMsg"] = "Đã cập nhật bài viết.";
+                return RedirectToAction("Manage", "Article");
+            }
+            else
+            {
+                var ok = await _articleService.UpdateArticleAsync(id, userId.Value, updated);
+                if (ok == null) return Forbid();
+                return RedirectToAction("Index", new { mode = "my" });
+            }
+        }
+
+        // ══════════════════════════════════════════════
         // ADMIN — WP-style management page
         // ══════════════════════════════════════════════
         [HttpGet]
@@ -473,17 +544,6 @@ namespace DaNangSafeMap.Controllers
             if (role != "Admin" || userId == null) return Forbid();
 
             var success = await _articleService.ApproveArticleAsync(id, userId.Value);
-            return success ? Ok() : NotFound();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ToggleFeatured(int id)
-        {
-            var userId = GetCurrentUserId();
-            var role = GetCurrentUserRole();
-            if (role != "Admin" || userId == null) return Forbid();
-
-            var success = await _articleService.ToggleFeaturedArticleAsync(id, userId.Value);
             return success ? Ok() : NotFound();
         }
 

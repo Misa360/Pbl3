@@ -280,10 +280,17 @@ namespace DaNangSafeMap.Services.Implementations
 
         public async Task<Article> CreateArticleAsync(Article article)
         {
-            article.Status = 1; // PENDING
+            // Tôn trọng Status mà caller đã set (Admin = 2/APPROVED, User = 1/PENDING).
+            // Chỉ mặc định về PENDING khi caller không truyền giá trị nào.
+            article.Status ??= 1;
             article.CreatedAt = DateTime.Now;
             article.UpdatedAt = DateTime.Now;
             article.Slug = GenerateSlug(article.Title);
+            if (article.Status == 2)
+            {
+                article.ModeratedAt = DateTime.Now;
+                article.ModeratedBy = article.AuthorId;
+            }
             _db.Articles.Add(article);
             await _db.SaveChangesAsync();
             InvalidateArticleListCaches();
@@ -314,6 +321,30 @@ namespace DaNangSafeMap.Services.Implementations
             await _db.SaveChangesAsync();
             InvalidateArticleListCaches();
             return article;
+        }
+
+        public async Task<bool> AdminUpdateArticleAsync(int id, string title, string? summary, string content,
+            int categoryId, string? imageUrl, bool isFeatured)
+        {
+            var article = await _db.Articles.FirstOrDefaultAsync(a => a.Id == id && a.DeletedAt == null);
+            if (article == null) return false;
+
+            article.Title = title;
+            article.Summary = summary;
+            article.Content = content;
+            article.CategoryId = categoryId;
+            article.IsFeatured = isFeatured;
+            if (!string.IsNullOrEmpty(imageUrl)) article.ImageUrl = imageUrl;
+            article.UpdatedAt = DateTime.Now;
+            article.Slug = GenerateSlug(title);
+
+            // Admin sửa thì auto-approve, kể cả bài đang pending hay bị reject.
+            article.Status = 2;
+            article.RejectReason = null;
+
+            await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
+            return true;
         }
 
         public async Task<bool> DeleteArticleAsync(int id, int userId)
