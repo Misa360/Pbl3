@@ -14,6 +14,7 @@ namespace DaNangSafeMap.Services.Interfaces
         Task<List<Article>> GetRelatedArticlesAsync(int articleId, int count = 5);
         Task<Article> CreateArticleAsync(Article article);
         Task<Article?> UpdateArticleAsync(int id, int userId, Article updated);
+        Task<bool> AdminUpdateArticleAsync(int id, string title, string? summary, string content, int categoryId, string? imageUrl, bool isFeatured);
         Task<bool> DeleteArticleAsync(int id, int userId);
         Task IncrementViewCountAsync(int id, string? ipAddress, int? userId);
 
