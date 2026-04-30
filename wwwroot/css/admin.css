@@ -337,7 +337,9 @@ body {
     .main-content {
         padding: 15px;
     }
-}/* ════════════════════════════════════════════════════════
+}
+
+/* ════════════════════════════════════════════════════════
    ADMIN POSTS — WordPress-style management
    Dùng cho /Article/Manage
    ════════════════════════════════════════════════════════ */
@@ -701,8 +703,36 @@ body {
 }
 
 .wp-pill--feat {
+    background: #fde8e9;
     color: #d63638;
+    border: 1px solid #f5b7b9;
+    border-radius: 999px;
+    padding: 1px 8px;
     font-weight: 600;
+    font-size: 11px;
+    margin-left: 6px;
+}
+
+.wp-pill--focus {
+    background: #e7f1fb;
+    color: #1d4ed8;
+    border: 1px solid #c7daf3;
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-weight: 600;
+    font-size: 11px;
+    margin-left: 6px;
+}
+
+.wp-pill--event {
+    background: #f1eaff;
+    color: #6d28d9;
+    border: 1px solid #d6c5f3;
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-weight: 600;
+    font-size: 11px;
+    margin-left: 6px;
 }
 
 .wp-pill--rej {
@@ -735,7 +765,7 @@ body {
     color: #842029;
 }
 
-/* Star (featured toggle) */
+/* Star (featured toggle) — legacy class, giữ lại cho tương thích */
 .wp-star {
     background: none;
     border: none;
@@ -751,6 +781,123 @@ body {
 
 .wp-star.on {
     color: #f0a020;
+}
+
+/* Toggle buttons cho 3 cờ Nổi bật / Tiêu điểm / Sự kiện ở admin Manage.
+   Mỗi loại có màu riêng + nền sáng khi đang BẬT để nhìn rõ trạng thái. */
+.wp-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.15s ease;
+    color: #8c8f94;
+    line-height: 1;
+}
+
+.wp-toggle-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.wp-toggle-btn__icon {
+    font-size: 16px;
+    filter: grayscale(100%) opacity(0.55);
+    transition: filter 0.15s ease;
+}
+
+.wp-toggle-btn.is-on .wp-toggle-btn__icon {
+    filter: none;
+}
+
+.wp-toggle-btn--feat.is-on {
+    background: #fff8e6;
+    border-color: #f0a020;
+    color: #d97706;
+    box-shadow: inset 0 0 0 1px #f0a020;
+}
+
+.wp-toggle-btn--focus.is-on {
+    background: #e7f1fb;
+    border-color: #1d4ed8;
+    color: #1d4ed8;
+    box-shadow: inset 0 0 0 1px #1d4ed8;
+}
+
+.wp-toggle-btn--event.is-on {
+    background: #f1eaff;
+    border-color: #6d28d9;
+    color: #6d28d9;
+    box-shadow: inset 0 0 0 1px #6d28d9;
+}
+
+/* Toggle chips trong Sửa nhanh: checkbox ẩn + chip hiển thị trạng thái */
+.wp-qe-toggles {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.wp-toggle {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.wp-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.wp-toggle__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid #dcdcde;
+    background: #f6f7f7;
+    color: #6c7176;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.wp-toggle:hover .wp-toggle__chip {
+    border-color: #b1b3b6;
+    background: #ffffff;
+}
+
+.wp-toggle input:checked+.wp-toggle__chip--feat {
+    background: #fff4d6;
+    border-color: #f0a020;
+    color: #b45309;
+}
+
+.wp-toggle input:checked+.wp-toggle__chip--focus {
+    background: #dbeafe;
+    border-color: #1d4ed8;
+    color: #1d4ed8;
+}
+
+.wp-toggle input:checked+.wp-toggle__chip--event {
+    background: #ede9fe;
+    border-color: #6d28d9;
+    color: #6d28d9;
+}
+
+.wp-toggle input:focus-visible+.wp-toggle__chip {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
 }
 
 /* Quick edit form */

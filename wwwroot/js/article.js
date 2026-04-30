@@ -66,7 +66,7 @@ const ArticleApp = {
 
     async readNotification(id, articleId) {
         try {
-            await fetch(`/Article/MarkNotificationRead/${id}`, { method: 'POST' });
+            await this.fetchPost(`/Article/MarkNotificationRead/${id}`);
             if (articleId) {
                 window.location.href = `/Article/Details/${articleId}`;
             } else {
@@ -78,7 +78,7 @@ const ArticleApp = {
 
     async markAllRead() {
         try {
-            await fetch('/Article/MarkAllRead', { method: 'POST' });
+            await this.fetchPost('/Article/MarkAllRead');
             this.loadNotifications();
             this.loadNotificationCount();
         } catch (e) { }
@@ -101,11 +101,7 @@ const ArticleApp = {
             btn.textContent = 'Đang gửi...';
 
             try {
-                const res = await fetch('/Article/AddComment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ articleId: parseInt(articleId), content })
-                });
+                const res = await this.fetchPost('/Article/AddComment', { articleId: parseInt(articleId), content });
 
                 if (res.status === 401) {
                     alert('Vui lòng đăng nhập để bình luận');
@@ -191,7 +187,7 @@ const ArticleApp = {
     async deleteArticle(id) {
         if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return;
         try {
-            const res = await fetch(`/Article/DeleteArticle/${id}`, { method: 'POST' });
+            const res = await this.fetchPost(`/Article/DeleteArticle/${id}`);
             if (res.ok) { location.reload(); }
             else { alert('Không thể xóa bài viết'); }
         } catch (e) { alert('Có lỗi xảy ra'); }
@@ -230,7 +226,7 @@ const ArticleApp = {
     async approveArticle(id) {
         if (!confirm('Duyệt bài viết này?')) return;
         try {
-            const res = await fetch(`/Article/Approve/${id}`, { method: 'POST' });
+            const res = await this.fetchPost(`/Article/Approve/${id}`);
             if (res.ok) { location.reload(); }
             else { alert('Có lỗi xảy ra'); }
         } catch (e) { alert('Có lỗi xảy ra'); }
@@ -250,14 +246,32 @@ const ArticleApp = {
         const reason = document.getElementById('reject-reason')?.value?.trim();
         if (!reason) { alert('Vui lòng nhập lý do từ chối'); return; }
         try {
-            const res = await fetch(`/Article/Reject/${this.rejectArticleId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
-            });
+            const res = await this.fetchPost(`/Article/Reject/${this.rejectArticleId}`, { reason });
             if (res.ok) { location.reload(); }
             else { alert('Có lỗi xảy ra'); }
         } catch (e) { alert('Có lỗi xảy ra'); }
+    },
+
+    // ── HELPERS ──
+    getAntiforgeryToken() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    },
+
+    async fetchPost(url, body = null, isJson = true) {
+        const headers = {
+            'Request-Verification-Token': this.getAntiforgeryToken()
+        };
+        if (isJson && body) headers['Content-Type'] = 'application/json';
+
+        const options = {
+            method: 'POST',
+            headers: headers
+        };
+        if (body) {
+            options.body = isJson ? JSON.stringify(body) : body;
+        }
+
+        return fetch(url, options);
     },
 
     // ── INIT ──

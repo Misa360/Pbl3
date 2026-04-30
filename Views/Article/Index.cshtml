@@ -23,6 +23,11 @@
     var userId = ViewBag.UserId as int?;
     var role = ViewBag.Role as string;
     
+    var currentPage = ViewBag.CurrentPage as int? ?? 1;
+    var totalItems = ViewBag.Total as int? ?? 0;
+    var pageSize = ViewBag.PageSize as int? ?? 24;
+    var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+    
     var mainArticle = featured.FirstOrDefault();
     var sideArticles = featured.Skip(1).Take(3).ToList();
 }
@@ -50,13 +55,13 @@
                         <span style="font-size: 16px; font-weight: 700; color: var(--art-text);">🔔 Thông báo</span>
                         @if (unread.Any())
                         {
-                            <span style="background: var(--art-orange); color: #fff; font-size: 11px; font-weight: 700; border-radius: 12px; padding: 2px 8px;">@unread.Count mới</span>
+                            <span style="background: var(--bdn-green); color: #fff; font-size: 11px; font-weight: 700; border-radius: 12px; padding: 2px 8px;">@unread.Count mới</span>
                         }
                     </div>
                     @foreach (var notif in notifications.Take(5))
                     {
-                        var notifBg = notif.IsRead == false ? "#fef9f0" : "#f9f9f9";
-                        var notifBorder = notif.Type == "APPROVED" ? "#27ae60" : (notif.Type == "REJECTED" ? "#e74c3c" : "#e67e22");
+                        var notifBg = notif.IsRead == false ? "#f3f8f7" : "#f9f9f9";
+                        var notifBorder = notif.Type == "APPROVED" ? "#00897B" : (notif.Type == "REJECTED" ? "#00897B" : "#00897B");
                         <div style="background: @notifBg; border-left: 4px solid @notifBorder; border-radius: 6px; padding: 12px 16px; margin-bottom: 8px;">
                             <div style="font-weight: 700; font-size: 14px; color: var(--art-text); margin-bottom: 4px;">@notif.Title</div>
                             <div style="font-size: 13px; color: var(--art-text-secondary);">@notif.Content</div>
@@ -71,7 +76,7 @@
                 <div class="my-articles-list">
                     @foreach (var article in Model)
                     {
-                        var statusColor = article.Status == 1 ? "orange" : (article.Status == 2 ? "green" : "red");
+                        var statusColor = article.Status == 1 ? "#FFB74D" : (article.Status == 2 ? "#00897B" : "#00897B");
                         var statusText = article.Status == 1 ? "Chờ duyệt" : (article.Status == 2 ? "Đã duyệt" : "Từ chối");
                         
                         <div class="my-article-card" style="border: 1px solid #eee; border-radius: 8px; padding: 16px; margin-bottom: 16px; display: flex; gap: 16px; align-items: start;">
@@ -93,7 +98,7 @@
                                 </span>
                                 @if (article.Status == 3 && !string.IsNullOrEmpty(article.RejectReason))
                                 {
-                                    <div style="margin-top: 8px; font-size: 13px; color: red; background: #fff0f0; padding: 8px; border-radius: 4px; border-left: 3px solid red;">
+                                    <div style="margin-top: 8px; font-size: 13px; color: #00695C; background: #f3f8f7; padding: 8px; border-radius: 4px; border-left: 3px solid #00897B;">
                                         <strong>Lý do từ chối:</strong> @article.RejectReason
                                     </div>
                                 }
@@ -548,9 +553,9 @@ else if (mode == "public" || mode == "home")
             //       ĐỌC NHIỀU / TIN MỚI có đánh số 1-4.
             var catObj  = categories.FirstOrDefault(x => x.Slug == currentCat);
             var catName = catObj?.Name ?? currentCat ?? "";
-            var heroBig = latest.FirstOrDefault();
-            var topMinis = latest.Skip(1).Take(4).ToList();
-            var listItems = latest.Skip(5).ToList();
+            var heroBig = currentPage == 1 ? latest.FirstOrDefault() : null;
+            var topMinis = currentPage == 1 ? latest.Skip(1).Take(4).ToList() : new List<DaNangSafeMap.Models.Entities.Article>();
+            var listItems = currentPage == 1 ? latest.Skip(5).ToList() : latest;
             var popItems = (mostViewed ?? new List<DaNangSafeMap.Models.Entities.Article>()).Take(4).ToList();
             var newItems = latest.Take(4).ToList();
 
@@ -610,6 +615,29 @@ else if (mode == "public" || mode == "home")
                         {
                             <div class="bdn-empty" style="padding:40px 0;color:var(--bdn-muted);text-align:center;">
                                 Chưa có bài viết nào trong chuyên mục này.
+                            </div>
+                        }
+
+                        @if (totalPages > 1)
+                        {
+                            <div class="sm-pagination" style="margin-top: 30px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px;">
+                                @if (currentPage > 1) {
+                                    <a href="/Article?categorySlug=@currentCat&page=@(currentPage - 1)" class="sm-pager-btn" style="padding: 8px 12px; border: 1px solid #ddd; text-decoration: none; border-radius: 4px; color: #333; font-weight: 500; background: #fff;">Trước</a>
+                                }
+                                @for (int p = 1; p <= totalPages; p++)
+                                {
+                                    if (p == 1 || p == totalPages || (p >= currentPage - 2 && p <= currentPage + 2))
+                                    {
+                                        <a href="/Article?categorySlug=@currentCat&page=@p" class="sm-pager-btn @(p == currentPage ? "active" : "")" style="padding: 8px 14px; border: 1px solid #ddd; text-decoration: none; border-radius: 4px; font-weight: 500; color: @(p == currentPage ? "#fff" : "#333"); background: @(p == currentPage ? "var(--bdn-green)" : "#fff"); border-color: @(p == currentPage ? "var(--bdn-green)" : "#ddd");">@p</a>
+                                    }
+                                    else if (p == currentPage - 3 || p == currentPage + 3)
+                                    {
+                                        <span class="sm-pager-dots" style="padding: 8px; color: #666;">...</span>
+                                    }
+                                }
+                                @if (currentPage < totalPages) {
+                                    <a href="/Article?categorySlug=@currentCat&page=@(currentPage + 1)" class="sm-pager-btn" style="padding: 8px 12px; border: 1px solid #ddd; text-decoration: none; border-radius: 4px; color: #333; font-weight: 500; background: #fff;">Sau</a>
+                                }
                             </div>
                         }
                     </div>

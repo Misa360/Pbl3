@@ -8,12 +8,14 @@ namespace DaNangSafeMap.Services.Interfaces
         Task<List<Article>> GetArticlesByCategoryAsync(string slug, int page = 1, int pageSize = 20);
         Task<int> GetArticleCountByCategoryAsync(string slug);
         Task<Article?> GetArticleByIdAsync(int id);
+        Task<Article?> GetArticleByIdUnfilteredAsync(int id);
         Task<List<Article>> GetLatestArticlesAsync(int count = 10, string? categorySlug = null);
         Task<List<Article>> GetFeaturedArticlesAsync(int count = 4, string? categorySlug = null);
         Task<List<Article>> GetMostViewedArticlesAsync(int count = 10);
         Task<List<Article>> GetRelatedArticlesAsync(int articleId, int count = 5);
         Task<Article> CreateArticleAsync(Article article);
         Task<Article?> UpdateArticleAsync(int id, int userId, Article updated);
+        Task<bool> AdminUpdateArticleAsync(int id, string title, string? summary, string content, int categoryId, string? imageUrl, bool isFeatured);
         Task<bool> DeleteArticleAsync(int id, int userId);
         Task IncrementViewCountAsync(int id, string? ipAddress, int? userId);
 

@@ -1,0 +1,65 @@
+@model DaNangSafeMap.Models.Entities.Article
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Xem trước: " + Model.Title;
+}
+
+<div class="sm-manage-wrapper">
+    <div style="max-width: 800px; margin: 30px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+            <a href="javascript:history.back()" style="color: #6B7280; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px; font-weight: 500;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Quay lại
+            </a>
+            @if (Model.Status == 2)
+            {
+                <span style="padding: 4px 12px; background: #ECFDF5; color: #059669; border-radius: 20px; font-size: 12px; font-weight: 700;">Đã xuất bản</span>
+            }
+            else if (Model.Status == 1)
+            {
+                <span style="padding: 4px 12px; background: #FFFBEB; color: #D97706; border-radius: 20px; font-size: 12px; font-weight: 700;">Chờ duyệt</span>
+            }
+            else if (Model.Status == 3)
+            {
+                <span style="padding: 4px 12px; background: #FEF2F2; color: #DC2626; border-radius: 20px; font-size: 12px; font-weight: 700;">Bị từ chối</span>
+            }
+            else
+            {
+                <span style="padding: 4px 12px; background: #F3F4F6; color: #4B5563; border-radius: 20px; font-size: 12px; font-weight: 700;">Bản nháp</span>
+            }
+        </div>
+
+        <h1 style="font-size: 28px; font-weight: 700; color: #111827; margin-bottom: 16px; font-family: 'Be Vietnam Pro', sans-serif; line-height: 1.4;">@Model.Title</h1>
+        
+        <div style="display: flex; gap: 16px; font-size: 14px; color: #6B7280; margin-bottom: 32px; border-bottom: 1px solid #E5E7EB; padding-bottom: 16px; flex-wrap: wrap;">
+            <span><strong>Tác giả:</strong> @(Model.Author?.FullName ?? "Ẩn danh")</span>
+            <span style="color: #D1D5DB;">|</span>
+            <span><strong>Chuyên mục:</strong> @(Model.Category?.Name ?? "Chưa rõ")</span>
+            <span style="color: #D1D5DB;">|</span>
+            <span><strong>Thời gian:</strong> @(Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span>
+            @if (Model.DeletedAt != null)
+            {
+                <span style="color: #D1D5DB;">|</span>
+                <span style="color: #EF4444; font-weight: 600;">(Đang trong thùng rác)</span>
+            }
+        </div>
+        
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <div style="margin-bottom: 24px; text-align: center;">
+                <img src="@Model.ImageUrl" alt="@Model.Title" style="max-width: 100%; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" />
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Summary))
+        {
+            <div style="font-size: 16px; font-weight: 600; color: #374151; margin-bottom: 24px; line-height: 1.6; border-left: 4px solid #10B981; padding-left: 16px; background: #F9FAFB; padding: 12px 16px; border-radius: 0 8px 8px 0;">
+                @Model.Summary
+            </div>
+        }
+
+        <div style="font-size: 16px; line-height: 1.8; color: #1F2937; font-family: 'Be Vietnam Pro', sans-serif; overflow-wrap: break-word;">
+            @Html.Raw(Model.Content)
+        </div>
+    </div>
+</div>

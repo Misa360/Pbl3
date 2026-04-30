@@ -1,0 +1,249 @@
+@model DaNangSafeMap.Models.Entities.Article
+@{
+    var role       = ViewBag.Role as string;
+    var categories = ViewBag.Categories as List<DaNangSafeMap.Models.Entities.Category> ?? new();
+    var isAdmin    = role == "Admin";
+
+    if (isAdmin) {
+        Layout = "_AdminLayout";
+        ViewData["Title"] = "Chỉnh sửa bài viết - Admin";
+    } else {
+        Layout = "_Layout";
+        ViewData["Title"] = "Chỉnh sửa bài viết - DaNang SafeMap";
+    }
+}
+
+<link rel="stylesheet" href="~/css/article.css" asp-append-version="true" />
+
+@if (!isAdmin)
+{
+    @await Html.PartialAsync("_ArticleSubNav")
+}
+
+<div class="cr-builder @(isAdmin ? "cr-builder--admin" : "cr-builder--user")" id="cr-builder">
+
+    @* ── SIDEBAR ── *@
+    <div class="cr-sidebar">
+
+        @* Header *@
+        <div class="cr-sidebar__head @(isAdmin ? "cr-sidebar__head--admin" : "cr-sidebar__head--user")">
+            <div class="cr-sidebar__icon">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <span>@(isAdmin ? "Chỉnh sửa (Admin)" : "Chỉnh sửa bài viết")</span>
+            @if (!isAdmin)
+            {
+                <a href="/Article/Index?mode=my" class="cr-sidebar__back">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    Bài của tôi
+                </a>
+            }
+            else
+            {
+                <a href="/Article/Manage" class="cr-sidebar__back">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    Quản lý
+                </a>
+            }
+        </div>
+
+        @* Tabs *@
+        <div class="cr-tabs">
+            <button class="cr-tab cr-tab--active" id="tab-info" onclick="crTabToggle('info')">
+                <svg viewBox="0 0 24 24" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Thông tin
+            </button>
+            <button class="cr-tab" id="tab-media" onclick="crTabToggle('media')">
+                <svg viewBox="0 0 24 24" width="12" height="12"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Ảnh bìa
+            </button>
+        </div>
+
+        @* Main Form *@
+        <form id="articleForm" method="post" action="/Article/Edit/@Model.Id" enctype="multipart/form-data" style="display:contents">
+            @Html.AntiForgeryToken()
+            
+            @* Panel: Thông tin *@
+            <div id="panel-info" class="cr-panel">
+                @if (Model.Status == 3 && !string.IsNullOrEmpty(Model.RejectReason))
+                {
+                    <div style="background: #FEF2F2; color: #DC2626; border-left: 4px solid #F87171; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 13px;">
+                        <strong style="display: block; margin-bottom: 4px; font-size: 14px;">Bài viết bị từ chối:</strong>
+                        @Model.RejectReason
+                        <div style="margin-top: 8px; color: #B91C1C; font-style: italic;">Vui lòng chỉnh sửa lại theo yêu cầu.</div>
+                    </div>
+                }
+
+                <div class="cr-field">
+                    <label>Chuyên mục <span class="req">*</span></label>
+                    <select name="categoryId" required>
+                        @foreach (var cat in categories)
+                        { <option value="@cat.Id" selected="@(cat.Id == Model.CategoryId)">@cat.Name</option> }
+                    </select>
+                </div>
+
+                <div class="cr-field">
+                    <label>Tiêu đề bài viết <span class="req">*</span></label>
+                    <textarea name="title" id="articleTitle" rows="2" required placeholder="Nhập tiêu đề...">@Model.Title</textarea>
+                </div>
+
+                <div class="cr-field">
+                    <label>Tóm tắt ngắn</label>
+                    <textarea name="summary" rows="3" placeholder="Mô tả ngắn...">@Model.Summary</textarea>
+                </div>
+
+                @if (isAdmin)
+                {
+                    <div style="display:flex;gap:8px;align-items:center;margin-top:10px;padding:10px;background:#f0f7f4;border-radius:6px;border:1px solid #d4edda;">
+                        <input type="checkbox" id="isFeatured" name="isFeatured" value="true" @(Model.IsFeatured == true ? "checked" : "") style="width:16px;height:16px;cursor:pointer;">
+                        <label for="isFeatured" style="margin:0;font-size:12px;font-weight:700;color:#2D6A4F;text-transform:uppercase;cursor:pointer;">⭐ Tin Nổi Bật</label>
+                    </div>
+                }
+                else
+                {
+                    <div class="cr-pending-note">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Bài đã sửa sẽ được <strong>xét duyệt lại</strong>.
+                    </div>
+                }
+
+                <textarea name="content" id="articleContentHidden" style="display:none"></textarea>
+                <div id="articleAlert" class="cr-alert" style="display:none"></div>
+            </div>
+
+            @* Panel: Ảnh *@
+            <div id="panel-media" class="cr-panel" style="display:none">
+                <div class="cr-field">
+                    <label>Ảnh đại diện (Thumbnail)</label>
+                    <div class="cr-upload" onclick="document.getElementById('articleImgInput').click()" tabindex="0">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span id="articleImgLabel">@(string.IsNullOrEmpty(Model.ImageUrl) ? "Nhấn để chọn ảnh" : "Thay đổi ảnh")</span>
+                        <small>JPG · PNG · WEBP · Tối đa 5MB</small>
+                        <input type="file" id="articleImgInput" name="image" accept="image/*" style="display:none">
+                    </div>
+                    <img id="articleImgPreview" class="cr-preview" alt="Preview" src="@Model.ImageUrl" style="@(string.IsNullOrEmpty(Model.ImageUrl) ? "display:none" : "display:block")">
+                </div>
+            </div>
+
+            @* Footer *@
+            <div class="cr-sidebar__footer">
+                <div class="cr-sidebar__footer-info">
+                    <span style="color:#aaa; font-size:10px;">ID: #@Model.Id</span>
+                </div>
+                <button type="button" class="cr-sidebar__footer-btn" style="background:#2D6A4F;" onclick="crSubmit()">LƯU THAY ĐỔI</button>
+            </div>
+        </form>
+    </div>
+
+    @* ── CANVAS ── *@
+    <div class="cr-canvas-wrap">
+        <textarea id="tinyMceCanvas">@Html.Raw(Model.Content)</textarea>
+    </div>
+</div>
+
+@section Scripts {
+<style>
+/* Synchronized with Create.cshtml */
+.cr-builder { display: flex; overflow: hidden; background: #f0f2f5; font-family: 'Be Vietnam Pro', sans-serif; }
+.cr-builder--admin { height: calc(100vh - 70px); }
+.cr-builder--user { height: calc(100vh - 64px - 43px); }
+.cr-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid #e8ecf0; display: flex; flex-direction: column; z-index: 5; }
+.cr-sidebar__head { padding: 14px 16px; display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 600; font-size: 14px; flex-shrink: 0; }
+.cr-sidebar__head--admin, .cr-sidebar__head--user { background: #2D6A4F; }
+.cr-sidebar__icon { width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.cr-sidebar__back { margin-left: auto; font-size: 11px; color: rgba(255,255,255,0.85); text-decoration: none; display: flex; align-items: center; gap: 3px; }
+.cr-tabs { display: flex; border-bottom: 1px solid #eef1f5; background: #fafbfc; flex-shrink: 0; }
+.cr-tab { flex: 1; padding: 12px 4px; border: none; background: transparent; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #aab; display: flex; align-items: center; justify-content: center; gap: 6px; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.cr-tab svg { stroke: currentColor; fill: none; stroke-width: 2.5; }
+.cr-tab:hover { color: #2D6A4F; }
+.cr-tab--active { color: #2D6A4F !important; border-bottom-color: #2D6A4F !important; background: #fff; }
+.cr-panel { padding: 20px 16px; overflow-y: auto; flex: 1; }
+.cr-field { margin-bottom: 18px; }
+.cr-field label { display: block; font-size: 11px; font-weight: 700; color: #6d7882; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.req { color: #2D6A4F; }
+.cr-field select, .cr-field textarea { width: 100%; border: 1px solid #dfe3ea; border-radius: 6px; padding: 10px 12px; font-size: 13.5px; color: #333; font-family: inherit; background: #fff; transition: 0.2s; outline: none; resize: none; }
+.cr-upload { border: 2px dashed #dde1e4; border-radius: 8px; padding: 25px 15px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; color: #aaa; transition: 0.2s; }
+.cr-upload svg { stroke: #2D6A4F; }
+.cr-upload span { font-weight: 600; font-size: 13px; color: #555; }
+.cr-upload:hover { border-color: #2D6A4F; background: #f0f7f4; }
+.cr-preview { max-width:100%; border-radius:8px; margin-top:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); }
+.cr-pending-note { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #666; margin-top: 15px; padding: 10px; background: #f8f9fa; border: 1px solid #eee; border-radius: 6px; }
+.cr-alert { background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 6px; padding: 10px 14px; font-size: 12.5px; margin-top: 15px; }
+.cr-sidebar__footer { background: #2c3136; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.cr-sidebar__footer-btn { background: #2D6A4F; color: #fff; border: none; padding: 9px 22px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+.cr-sidebar__footer-btn:hover { background: #1b4332; transform: translateY(-1px); }
+.cr-canvas-wrap { flex: 1; overflow: hidden; background: #fff; }
+.tox-tinymce { border: none !important; border-left: 1px solid #e8ecf0 !important; }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+function crTabToggle(tab) {
+    document.getElementById('tab-info').classList.toggle('cr-tab--active', tab === 'info');
+    document.getElementById('tab-media').classList.toggle('cr-tab--active', tab === 'media');
+    document.getElementById('panel-info').style.display = (tab === 'info' ? 'block' : 'none');
+    document.getElementById('panel-media').style.display = (tab === 'media' ? 'block' : 'none');
+}
+
+function crSubmit() {
+    const title   = document.getElementById('articleTitle');
+    const hidden  = document.getElementById('articleContentHidden');
+    const alertEl = document.getElementById('articleAlert');
+    const warn = m => { alertEl.textContent = m; alertEl.style.display = 'block'; crTabToggle('info'); };
+
+    if (!title.value.trim()) { warn('⚠️ Vui lòng nhập tiêu đề bài báo.'); title.focus(); return; }
+    const content = tinymce.get('tinyMceCanvas').getContent();
+    if (!content.trim()) { warn('⚠️ Nội dung bài viết không được để trống.'); return; }
+    
+    hidden.value = content;
+    alertEl.style.display = 'none';
+    document.getElementById('articleForm').submit();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('articleImgInput');
+    inp.addEventListener('change', function() {
+        if (!this.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const prev = document.getElementById('articleImgPreview');
+            prev.src = e.target.result;
+            prev.style.display = 'block';
+            document.getElementById('articleImgLabel').textContent = '✓ ' + this.files[0].name;
+            crTabToggle('media');
+        };
+        reader.readAsDataURL(this.files[0]);
+    });
+
+    tinymce.init({
+        selector: '#tinyMceCanvas',
+        height: '100%',
+        menubar: false,
+        branding: false,
+        elementpath: false,
+        plugins: 'advlist autolink lists link image charmap preview anchor pagebreak searchreplace wordcount visualblocks visualchars code fullscreen insertdatetime media table emoticons',
+        toolbar: 'undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright justify | outdent indent | numlist bullist | forecolor backcolor removeformat | table image media link | fullscreen preview',
+        image_title: true,
+        automatic_uploads: true,
+        images_upload_url: '/Article/UploadMedia',
+        file_picker_types: 'image media',
+        file_picker_callback: function (cb, value, meta) {
+            var input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', meta.filetype === 'image' ? 'image/*' : 'video/*,audio/*');
+            input.onchange = function () {
+                var file = this.files[0];
+                var formData = new FormData();
+                formData.append('file', file);
+                fetch('/Article/UploadMedia', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => { cb(data.location, { title: file.name }); })
+                .catch(err => { alert('Upload thất bại!'); });
+            };
+            input.click();
+        },
+        content_style: "body { font-family: 'Be Vietnam Pro', sans-serif; font-size: 16px; line-height: 1.8; color: #333; margin: 2rem auto; max-width: 800px; } h2 { border-bottom: 2px solid #2D6A4F; font-size: 22px; padding-bottom: 6px; margin: 24px 0 12px; }"
+    });
+});
+</script>
+}

@@ -18,6 +18,8 @@ namespace DaNangSafeMap.Services.Implementations
         private static readonly TimeSpan MostViewedTtl   = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan CategoriesTtl   = TimeSpan.FromMinutes(10);
 
+        private static CancellationTokenSource _articleListCts = new();
+
         public ArticleService(ApplicationDbContext db, IMemoryCache cache)
         {
             _db = db;
@@ -27,21 +29,10 @@ namespace DaNangSafeMap.Services.Implementations
         // Invalidate every cached article list — called after create / approve / reject / toggle-featured / update / delete.
         private void InvalidateArticleListCaches()
         {
-            // Simple broad invalidation: remove all known cache keys.
-            // Keys are short and enumerable, so we can just drop them.
-            _cache.Remove("art:latest:-:10");
-            _cache.Remove("art:latest:-:12");
-            _cache.Remove("art:latest:an-ninh:20");
-            _cache.Remove("art:latest:an-ninh:24");
-            _cache.Remove("art:latest:an-ninh:7");
-            _cache.Remove("art:latest:doi-song:20");
-            _cache.Remove("art:latest:doi-song:24");
-            _cache.Remove("art:latest:doi-song:7");
-            _cache.Remove("art:featured:-:4");
-            _cache.Remove("art:featured:an-ninh:4");
-            _cache.Remove("art:featured:doi-song:4");
-            _cache.Remove("art:mostviewed:10");
-            _cache.Remove("art:categories");
+            // Cancel current token to signal all linked cache entries to expire
+            var oldCts = Interlocked.Exchange(ref _articleListCts, new CancellationTokenSource());
+            oldCts.Cancel();
+            oldCts.Dispose();
         }
 
         // ══════════════════════════════════════════════
@@ -103,6 +94,17 @@ namespace DaNangSafeMap.Services.Implementations
                 .FirstOrDefaultAsync(a => a.Id == id && a.DeletedAt == null);
         }
 
+        public async Task<Article?> GetArticleByIdUnfilteredAsync(int id)
+        {
+            return await _db.Articles.AsNoTracking()
+                .Include(a => a.Category)
+                .Include(a => a.Author)
+                .Include(a => a.Comments!)
+                    .ThenInclude(c => c.User)
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(a => a.Id == id);
+        }
+
         public async Task<List<Article>> GetLatestArticlesAsync(int count = 10, string? categorySlug = null)
         {
             var key = $"art:latest:{(string.IsNullOrEmpty(categorySlug) ? "-" : categorySlug)}:{count}";
@@ -139,7 +141,9 @@ namespace DaNangSafeMap.Services.Implementations
                 })
                 .ToListAsync();
 
-            _cache.Set(key, list, LatestTtl);
+            _cache.Set(key, list, new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(LatestTtl)
+                .AddExpirationToken(new Microsoft.Extensions.Primitives.CancellationChangeToken(_articleListCts.Token)));
             return list;
         }
 
@@ -209,7 +213,9 @@ namespace DaNangSafeMap.Services.Implementations
                 featured.AddRange(more);
             }
 
-            _cache.Set(key, featured, FeaturedTtl);
+            _cache.Set(key, featured, new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(FeaturedTtl)
+                .AddExpirationToken(new Microsoft.Extensions.Primitives.CancellationChangeToken(_articleListCts.Token)));
             return featured;
         }
 
@@ -242,7 +248,9 @@ namespace DaNangSafeMap.Services.Implementations
                 })
                 .ToListAsync();
 
-            _cache.Set(key, list, MostViewedTtl);
+            _cache.Set(key, list, new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(MostViewedTtl)
+                .AddExpirationToken(new Microsoft.Extensions.Primitives.CancellationChangeToken(_articleListCts.Token)));
             return list;
         }
 
@@ -280,10 +288,25 @@ namespace DaNangSafeMap.Services.Implementations
 
         public async Task<Article> CreateArticleAsync(Article article)
         {
-            article.Status = 1; // PENDING
+            // Tôn trọng Status mà caller đã set (Admin = 2/APPROVED, User = 1/PENDING).
+            // Chỉ mặc định về PENDING khi caller không truyền giá trị nào.
+            article.Status ??= 1;
             article.CreatedAt = DateTime.Now;
             article.UpdatedAt = DateTime.Now;
+
+            // Ensure Category exists
+            if (!await _db.Categories.AnyAsync(c => c.Id == article.CategoryId))
+            {
+                article.CategoryId = 1; 
+            }
+
+            article.Content = SanitizeHtml(article.Content);
             article.Slug = GenerateSlug(article.Title);
+            if (article.Status == 2)
+            {
+                article.ModeratedAt = DateTime.Now;
+                article.ModeratedBy = article.AuthorId;
+            }
             _db.Articles.Add(article);
             await _db.SaveChangesAsync();
             InvalidateArticleListCaches();
@@ -297,9 +320,15 @@ namespace DaNangSafeMap.Services.Implementations
 
             article.Title = updated.Title;
             article.Summary = updated.Summary;
-            article.Content = updated.Content;
+            article.Content = SanitizeHtml(updated.Content);
             article.ImageUrl = updated.ImageUrl ?? article.ImageUrl;
-            article.CategoryId = updated.CategoryId;
+            
+            // Ensure Category exists
+            if (await _db.Categories.AnyAsync(c => c.Id == updated.CategoryId))
+            {
+                article.CategoryId = updated.CategoryId;
+            }
+            
             article.SubCategoryName = updated.SubCategoryName;
             article.UpdatedAt = DateTime.Now;
             article.Slug = GenerateSlug(updated.Title);
@@ -314,6 +343,30 @@ namespace DaNangSafeMap.Services.Implementations
             await _db.SaveChangesAsync();
             InvalidateArticleListCaches();
             return article;
+        }
+
+        public async Task<bool> AdminUpdateArticleAsync(int id, string title, string? summary, string content,
+            int categoryId, string? imageUrl, bool isFeatured)
+        {
+            var article = await _db.Articles.FirstOrDefaultAsync(a => a.Id == id && a.DeletedAt == null);
+            if (article == null) return false;
+
+            article.Title = title;
+            article.Summary = summary;
+            article.Content = SanitizeHtml(content);
+            article.CategoryId = categoryId;
+            article.IsFeatured = isFeatured;
+            if (!string.IsNullOrEmpty(imageUrl)) article.ImageUrl = imageUrl;
+            article.UpdatedAt = DateTime.Now;
+            article.Slug = GenerateSlug(title);
+
+            // Admin sửa thì auto-approve, kể cả bài đang pending hay bị reject.
+            article.Status = 2;
+            article.RejectReason = null;
+
+            await _db.SaveChangesAsync();
+            InvalidateArticleListCaches();
+            return true;
         }
 
         public async Task<bool> DeleteArticleAsync(int id, int userId)
@@ -356,7 +409,8 @@ namespace DaNangSafeMap.Services.Implementations
 
             if (recentlyViewed) return;
 
-            article.ViewCount = (article.ViewCount ?? 0) + 1;
+            // Atomic increment using raw SQL to prevent race conditions
+            await _db.Database.ExecuteSqlRawAsync("UPDATE articles SET ViewCount = IFNULL(ViewCount, 0) + 1 WHERE Id = {0}", id);
 
             _db.ArticleViews.Add(new ArticleView
             {
@@ -385,10 +439,6 @@ namespace DaNangSafeMap.Services.Implementations
         // ══════════════════════════════════════════════
         // SEARCH
         // ══════════════════════════════════════════════
-        // Full-text-ish LIKE search across approved articles. We keep it simple:
-        // match the raw keyword against title / summary / content. Diacritic-
-        // insensitive matching would require a custom collation on the DB side,
-        // which isn't configured here, so we trust MySQL's default ci collation.
         public async Task<List<Article>> SearchArticlesAsync(string keyword, int take = 30)
         {
             if (string.IsNullOrWhiteSpace(keyword)) return new List<Article>();
@@ -518,8 +568,7 @@ namespace DaNangSafeMap.Services.Implementations
                 .Include(a => a.Category)
                 .Include(a => a.Author)
                 .Where(a => a.Status == 2 && a.DeletedAt == null)
-                .OrderByDescending(a => a.IsFeatured)
-                .ThenByDescending(a => a.CreatedAt)
+                .OrderByDescending(a => a.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(a => new Article
@@ -626,10 +675,6 @@ namespace DaNangSafeMap.Services.Implementations
             return true;
         }
 
-        // ══════════════════════════════════════════════
-        // ADMIN — WP-style management (list / bulk / quick-edit / duplicate)
-        // ══════════════════════════════════════════════
-
         public async Task<(List<Article> items, int total, int countAll, int countPublished, int countDraft, int countTrash)>
             GetAdminArticlesAsync(string status, string? q, int? categoryId, int page, int pageSize, string? view = null)
         {
@@ -667,7 +712,7 @@ namespace DaNangSafeMap.Services.Implementations
             var total = await q2.CountAsync();
 
             var items = await q2
-                .OrderByDescending(a => a.UpdatedAt ?? a.CreatedAt)
+                .OrderByDescending(a => a.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -787,6 +832,39 @@ namespace DaNangSafeMap.Services.Implementations
         // ══════════════════════════════════════════════
         // HELPERS
         // ══════════════════════════════════════════════
+
+        private string SanitizeHtml(string html)
+        {
+            if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+
+            // 1. Remove <script> blocks
+            var sanitized = System.Text.RegularExpressions.Regex.Replace(html,
+                @"<script\b[^>]*>([\s\S]*?)<\/script>", "",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            // 2. Remove dangerous tags like <iframe>, <object>, <embed>, <applet>
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized,
+                @"<(iframe|object|embed|applet|form|base|link|meta)\b[^>]*>([\s\S]*?)<\/\1>", "",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized,
+                @"<(iframe|object|embed|applet|form|base|link|meta)\b[^>]*>", "",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            // 3. Remove event handlers (onmouseover, onclick, etc.)
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized,
+                @"\bon[a-z]+\s*=\s*""[^""]*""", "",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized,
+                @"\bon[a-z]+\s*=\s*'[^']*'", "",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            // 4. Remove javascript: links
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized,
+                @"href\s*=\s*""javascript:[^""]*""", "href=\"#\"",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return sanitized;
+        }
 
         private string GenerateSlug(string title)
         {

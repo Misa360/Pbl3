@@ -17,365 +17,377 @@
     var msg = TempData["AdminMsg"] as string;
 
     string TabHref(string s) => $"/Article/Manage?status={s}{(string.IsNullOrEmpty(query) ? "" : "&q=" + Uri.EscapeDataString(query))}{(catId.HasValue ? "&categoryId=" + catId : "")}";
-
-    string StatusLabel(int? st)
-    {
-        return st switch
-        {
-            1 => "Bản nháp",
-            2 => "Đã xuất bản",
-            3 => "Bị từ chối",
-            _ => "—"
-        };
-    }
-    string StatusCss(int? st)
-    {
-        return st switch
-        {
-            1 => "wp-status wp-status--draft",
-            2 => "wp-status wp-status--pub",
-            3 => "wp-status wp-status--rej",
-            _ => "wp-status"
-        };
-    }
-
     var totalPages = (int)Math.Ceiling((double)total / pageSize);
     if (totalPages < 1) totalPages = 1;
+
+    bool isTrashView = status == "trash";
 }
 
+<div class="sm-manage-wrapper">
 
-<div class="wp-page">
-    <div class="wp-page__head">
-        <h1 class="wp-page__title">Bài viết
-            <a class="wp-add-new" href="/Article/Create">Viết bài mới</a>
-        </h1>
-        @if (!string.IsNullOrEmpty(msg))
-        {
-            <div class="wp-flash">@msg</div>
-        }
+    @* ── STICKY NAV BLOCK ── *@
+    <div class="sm-sticky-nav">
+        <div class="sm-toolbar" id="smToolbar">
+            @* MODE: DEFAULT *@
+            <div class="sm-toolbar__default" id="toolbarDefault">
+                <div class="sm-tabs">
+                    <a href="@TabHref("all")" class="sm-tab @(status == "all" ? "active" : "")">Tất cả (@cAll)</a>
+                    <a href="@TabHref("published")" class="sm-tab @(status == "published" ? "active" : "")">Đã xuất bản (@cPub)</a>
+                    <a href="@TabHref("draft")" class="sm-tab @(status == "draft" ? "active" : "")">Chờ duyệt (@cDraft)</a>
+                    <a href="@TabHref("trash")" class="sm-tab @(status == "trash" ? "active" : "")">Thùng rác (@cTrash)</a>
+                </div>
+                <div class="sm-toolbar__right">
+                    <form method="get" action="/Article/Manage" class="sm-filter-form">
+                        <input type="hidden" name="status" value="@status" />
+                        <select name="categoryId" class="sm-select" onchange="this.form.submit()">
+                            <option value="">Chuyên mục</option>
+                            @foreach (var c in cats) { <option value="@c.Id" selected="@(catId == c.Id)">@c.Name</option> }
+                        </select>
+                    </form>
+                    <form method="get" action="/Article/Manage" class="sm-search-form">
+                        <input type="hidden" name="status" value="@status" />
+                        <div class="sm-search-wrap">
+                            <input type="search" name="q" value="@query" placeholder="Tìm bài viết..." />
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            @* MODE: SELECTION *@
+            <div class="sm-toolbar__selection" id="toolbarSelection" style="display:none">
+                <div class="sm-selection-left">
+                    <button type="button" class="sm-btn-clear" onclick="clearSelection()"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                    <span class="sm-selection-count"><span id="selectionCount">0</span> mục đã chọn</span>
+                </div>
+                <div class="sm-selection-actions">
+                    @if (isTrashView) {
+                        <button type="button" class="sm-action-btn sm-action-btn--toolbar sm-text-success" onclick="submitBulk('restore')" title="Phục hồi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
+                        <button type="button" class="sm-action-btn sm-action-btn--toolbar sm-text-danger" onclick="submitBulk('permdelete')" title="Xóa vĩnh viễn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                    } else {
+                        <button type="button" class="sm-action-btn sm-action-btn--toolbar sm-text-danger" onclick="submitBulk('trash')" title="Bỏ vào thùng rác"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* TABLE HEADER JOINED WITH TOOLBAR *@
+        <div class="sm-table-header-wrap">
+            <table class="sm-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; padding-left: 24px;"><input type="checkbox" id="selAll" /></th>
+                        <th style="width: 35%;">Tiêu đề</th>
+                        <th style="width: 15%;">Tác giả</th>
+                        <th style="width: 12%;">Chuyên mục</th>
+                        <th style="width: 13%;">Trạng thái</th>
+                        <th style="width: 8%;">Lượt xem</th>
+                        <th style="width: 10%;">Thời gian</th>
+                        <th style="width: 150px; text-align: right; padding-right: 24px;">Hành động</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
     </div>
 
-    <!-- Status tabs -->
-    <ul class="wp-subtabs">
-        <li><a href="@TabHref("all")" class="@(status == "all" ? "current" : "")">Tất cả <span class="count">(@cAll)</span></a></li>
-        <li><a href="@TabHref("published")" class="@(status == "published" ? "current" : "")">Đã xuất bản <span class="count">(@cPub)</span></a></li>
-        <li><a href="@TabHref("draft")" class="@(status == "draft" ? "current" : "")">Chờ duyệt <span class="count">(@cDraft)</span></a></li>
-        <li><a href="@TabHref("trash")" class="@(status == "trash" ? "current" : "")">Thùng rác <span class="count">(@cTrash)</span></a></li>
-    </ul>
-
-    <!-- Search box -->
-    <form method="get" action="/Article/Manage" class="wp-search">
-        <input type="hidden" name="status" value="@status" />
-        @if (catId.HasValue) { <input type="hidden" name="categoryId" value="@catId" /> }
-        <input type="search" name="q" value="@query" placeholder="Tìm theo tiêu đề bài viết..." />
-        <button type="submit" class="wp-btn">Tìm các bài viết</button>
-    </form>
-
-    <!-- Bulk actions toolbar -->
-    <form method="post" action="/Article/BulkAction" id="bulkForm">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="returnStatus" value="@status" />
-        @if (!string.IsNullOrEmpty(query)) { <input type="hidden" name="q" value="@query" /> }
-        @if (catId.HasValue) { <input type="hidden" name="categoryId" value="@catId" /> }
-
-        <div class="wp-tablenav top">
-            <div class="wp-bulk">
-                <select name="action" class="wp-select">
-                    <option value="">Tác vụ</option>
-                    @if (status == "trash")
+    @* ── DATA TABLE CONTENT ── *@
+    <div class="sm-content-scroll">
+        <form method="post" action="/Article/BulkAction" id="bulkForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnStatus" value="@status" /><input type="hidden" name="action" id="bulkActionInput" />
+            
+            <table class="sm-table sm-table-body">
+                <tbody>
+                    @if (!Model.Any()) { <tr><td colspan="8" class="sm-empty">Không tìm thấy bài viết nào.</td></tr> }
+                    @foreach (var a in Model)
                     {
-                        <option value="restore">Phục hồi</option>
-                        <option value="permdelete">Xóa vĩnh viễn</option>
+                        <tr class="sm-row-hoverable">
+                            <td style="width: 50px; padding-left: 24px;"><input type="checkbox" name="ids" value="@a.Id" class="row-cb" onchange="updateSelectionUI()" /></td>
+                            <td style="width: 35%;">
+                                <div class="sm-title-cell">
+                                    <a href="/Article/Preview/@a.Id" class="sm-article-link" title="Xem trước bài viết">@a.Title</a>
+                                </div>
+                            </td>
+                            <td style="width: 15%;"><span class="sm-author">@(a.Author?.FullName ?? "—")</span></td>
+                            <td style="width: 12%;">
+                                @{ var catClass = a.CategoryId switch { 1 => "sm-cat--security", 2 => "sm-cat--life", _ => "sm-cat--default" }; }
+                                <span class="sm-cat @catClass">@(a.Category?.Name ?? "Chưa rõ")</span>
+                            </td>
+                            <td style="width: 13%;">
+                                @if (a.Status == 2) { <span class="sm-status sm-status--pub"><span class="sm-dot"></span> Đã xuất bản</span> }
+                                else if (a.Status == 1) { <span class="sm-status sm-status--draft"><span class="sm-dot"></span> Chờ duyệt</span> }
+                                else { <span class="sm-status sm-status--rej"><span class="sm-dot"></span> Bị từ chối</span> }
+                            </td>
+                            <td style="width: 8%;"><span class="sm-views">@((a.ViewCount ?? 0).ToString("N0"))</span></td>
+                            <td style="width: 10%;">
+                                <div class="sm-time-cell">
+                                    <span class="sm-time">@(a.CreatedAt?.ToString("HH:mm") ?? "—")</span>
+                                    <span class="sm-date">@(a.CreatedAt?.ToString("dd/MM/yyyy") ?? "—")</span>
+                                </div>
+                            </td>
+                            <td style="width: 150px; text-align: right; padding-right: 24px;">
+                                <div class="sm-actions">
+                                    @if (!isTrashView)
+                                    {
+                                        if (a.Status == 1 || a.Status == 3) {
+                                            <button type="button" class="sm-action-btn sm-text-success" onclick="wpApprove(@a.Id)" title="Duyệt bài">
+                                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            </button>
+                                        }
+                                        if (a.Status == 1) {
+                                            <button type="button" class="sm-action-btn sm-text-danger" onclick="wpReject(@a.Id)" title="Từ chối">
+                                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
+                                        }
+                                        <button type="button" class="sm-action-btn sm-action-btn--star @(a.IsFeatured == true ? "active" : "")" onclick="wpToggleFeatured(@a.Id)" title="Nổi bật">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                        </button>
+                                        <button type="button" class="sm-action-btn sm-action-btn--focus @(a.IsFocus == true ? "active" : "")" onclick="wpToggleFocus(@a.Id)" title="Tiêu điểm">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                                        </button>
+                                        <button type="button" class="sm-action-btn sm-action-btn--event @(a.IsEvent == true ? "active" : "")" onclick="wpToggleEvent(@a.Id)" title="Sự kiện">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                        </button>
+                                        <a href="/Article/Edit/@a.Id" class="sm-action-btn sm-action-btn--edit" title="Chỉnh sửa">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="sm-action-btn sm-text-success" onclick="wpRestore(@a.Id)" title="Phục hồi"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
+                                        <button type="button" class="sm-action-btn sm-text-danger" onclick="wpPermDelete(@a.Id)" title="Xóa vĩnh viễn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
                     }
-                    else
-                    {
-                        <option value="trash">Bỏ vào thùng rác</option>
+                </tbody>
+            </table>
+        </form>
+
+        @* ── PAGINATION ── *@
+        <div class="sm-footer">
+            <div class="sm-info">Hiển thị @Model.Count trên @total bài viết</div>
+            @if (totalPages > 1) {
+                <div class="sm-pager">
+                    <a href="?status=@status&q=@query&page=@(page-1)" class="sm-pager-btn @(page <= 1 ? "disabled" : "")">&lt;</a>
+                    @for (int p = 1; p <= totalPages; p++) {
+                        if (p == 1 || p == totalPages || (p >= page - 1 && p <= page + 1)) { <a href="?status=@status&q=@query&page=@p" class="sm-pager-btn @(p == page ? "active" : "")">@p</a> }
+                        else if (p == 2 || p == totalPages - 1) { <span class="sm-pager-dots">...</span> }
                     }
-                </select>
-                <button type="submit" class="wp-btn">Áp dụng</button>
-            </div>
-
-            <div class="wp-filters">
-                <select name="categoryId" form="filterForm" class="wp-select" onchange="document.getElementById('filterForm').submit();">
-                    <option value="">Tất cả chuyên mục</option>
-                    @foreach (var c in cats)
-                    {
-                        <option value="@c.Id" selected="@(catId == c.Id)">@c.Name</option>
-                    }
-                </select>
-            </div>
-
-            <div class="wp-pagecount">@total mục</div>
-        </div>
-
-        <table class="wp-table">
-            <thead>
-                <tr>
-                    <td class="wp-col-cb"><input type="checkbox" id="selAll" /></td>
-                    <th class="wp-col-title">Tiêu đề</th>
-                    <th class="wp-col-author">Tác giả</th>
-                    <th class="wp-col-cat">Chuyên mục</th>
-                    <th class="wp-col-status">Trạng thái</th>
-                    <th class="wp-col-views">Lượt xem</th>
-                    <th class="wp-col-time">Thời gian</th>
-                    <th class="wp-col-feat" title="Tin nổi bật">★</th>
-                    <th class="wp-col-feat" title="Tiêu điểm">📌</th>
-                    <th class="wp-col-feat" title="Sự kiện & Bình luận">📅</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="10" class="wp-empty">Không có bài viết nào.</td></tr>
-                }
-                @foreach (var a in Model)
-                {
-                    <tr class="wp-row" id="row-@a.Id">
-                        <td class="wp-col-cb"><input type="checkbox" name="ids" value="@a.Id" class="wp-rowcb" /></td>
-                        <td class="wp-col-title">
-                            <strong>
-                                <a href="/Article/Details/@a.Id" class="wp-row-title">@(string.IsNullOrWhiteSpace(a.Title) ? "(không tiêu đề)" : a.Title)</a>
-                                @if (a.IsFeatured == true) { <span class="wp-pill wp-pill--feat">Nổi bật</span> }
-                                @if (a.Status == 1) { <span class="wp-pill" style="color: #d27304;">— Chờ duyệt</span> }
-                                @if (a.Status == 3) { <span class="wp-pill wp-pill--rej">— Bị từ chối</span> }
-                            </strong>
-                            <div class="wp-row-actions">
-                                <span><a href="/Article/Edit/@a.Id">Chỉnh sửa</a> | </span>
-                                <span><a href="javascript:void(0)" onclick="wpQuickEdit(@a.Id)">Sửa nhanh</a> | </span>
-                                @if (a.Status == 1)
-                                {
-                                    <span><a href="javascript:void(0)" class="text-success" style="color: #0f5132; font-weight: 600;" onclick="wpApprove(@a.Id)">✅ Duyệt bài</a> | </span>
-                                }
-                                @if (status == "trash")
-                                {
-                                    <span><a href="javascript:void(0)" onclick="wpRestore(@a.Id)">Phục hồi</a> | </span>
-                                    <span><a href="javascript:void(0)" class="text-danger" onclick="wpPermDelete(@a.Id)">Xóa vĩnh viễn</a> | </span>
-                                }
-                                else
-                                {
-                                    <span><a href="javascript:void(0)" class="text-danger" onclick="wpTrash(@a.Id)">Xóa tạm</a> | </span>
-                                }
-                                <span><a href="/Article/Details/@a.Id" target="_blank">Xem</a> | </span>
-                                <span><a href="javascript:void(0)" onclick="wpDuplicate(@a.Id)">Sao chép</a></span>
-                            </div>
-
-                            <!-- Quick edit form (hidden) -->
-                            <div class="wp-quickedit" id="qe-@a.Id" style="display:none;">
-                                <form method="post" action="/Article/QuickEdit">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@a.Id" />
-                                    <input type="hidden" name="returnStatus" value="@status" />
-                                    <div class="wp-qe-row">
-                                        <label>Tiêu đề</label>
-                                        <input type="text" name="title" value="@a.Title" required />
-                                    </div>
-                                    <div class="wp-qe-row">
-                                        <label>Đường dẫn (slug)</label>
-                                        <input type="text" name="slug" value="@(a.Slug ?? "")" />
-                                    </div>
-                                    <div class="wp-qe-row">
-                                        <label>Chuyên mục</label>
-                                        <select name="categoryId">
-                                            @foreach (var c in cats)
-                                            {
-                                                <option value="@c.Id" selected="@(c.Id == a.CategoryId)">@c.Name</option>
-                                            }
-                                        </select>
-                                    </div>
-                                    <div class="wp-qe-row">
-                                        <label>Trạng thái</label>
-                                        <select name="statusValue">
-                                            <option value="1" selected="@(a.Status == 1)">Bản nháp</option>
-                                            <option value="2" selected="@(a.Status == 2)">Đã xuất bản</option>
-                                            <option value="3" selected="@(a.Status == 3)">Bị từ chối</option>
-                                        </select>
-                                    </div>
-                                    <div class="wp-qe-row">
-                                        <label>
-                                            <input type="checkbox" name="isFeatured" value="true" checked="@(a.IsFeatured == true)" />
-                                            Đặt làm tin nổi bật
-                                        </label>
-                                    </div>
-                                    <div class="wp-qe-row">
-                                        <label>
-                                            <input type="checkbox" name="isFocus" value="true" checked="@(a.IsFocus == true)" />
-                                            Đặt làm Tiêu điểm
-                                        </label>
-                                    </div>
-                                    <div class="wp-qe-row">
-                                        <label>
-                                            <input type="checkbox" name="isEvent" value="true" checked="@(a.IsEvent == true)" />
-                                            Đặt làm Sự kiện &amp; bình luận
-                                        </label>
-                                    </div>
-                                    <div class="wp-qe-actions">
-                                        <button type="submit" class="wp-btn wp-btn--primary">Cập nhật</button>
-                                        <button type="button" class="wp-btn" onclick="document.getElementById('qe-@a.Id').style.display='none'">Hủy</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </td>
-                        <td class="wp-col-author">@(a.Author?.FullName ?? "—")</td>
-                        <td class="wp-col-cat">@(a.Category?.Name ?? "—")</td>
-                        <td class="wp-col-status"><span class="@StatusCss(a.Status)">@StatusLabel(a.Status)</span></td>
-                        <td class="wp-col-views">@((a.ViewCount ?? 0).ToString("N0"))</td>
-                        <td class="wp-col-time">
-                            @(status == "trash"
-                                ? "Đã xóa " + (a.DeletedAt?.ToString("dd/MM/yyyy") ?? "")
-                                : (a.Status == 2 ? "Đã xuất bản " : "Sửa đổi lần cuối ") + (a.UpdatedAt ?? a.CreatedAt)?.ToString("dd/MM/yyyy"))
-                        </td>
-                        <td class="wp-col-feat">
-                            <button type="button" class="wp-star @(a.IsFeatured == true ? "on" : "")"
-                                    title="@(a.IsFeatured == true ? "Bỏ nổi bật" : "Đặt làm nổi bật")"
-                                    onclick="wpToggleFeatured(@a.Id)">★</button>
-                        </td>
-                        <td class="wp-col-feat">
-                            <button type="button" class="wp-star @(a.IsFocus == true ? "on" : "")"
-                                    title="@(a.IsFocus == true ? "Bỏ Tiêu điểm" : "Đặt làm Tiêu điểm")"
-                                    onclick="wpToggleFocus(@a.Id)">📌</button>
-                        </td>
-                        <td class="wp-col-feat">
-                            <button type="button" class="wp-star @(a.IsEvent == true ? "on" : "")"
-                                    title="@(a.IsEvent == true ? "Bỏ Sự kiện" : "Đặt làm Sự kiện")"
-                                    onclick="wpToggleEvent(@a.Id)">📅</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td class="wp-col-cb"><input type="checkbox" class="selAll-foot" onchange="document.getElementById('selAll').checked=this.checked; toggleAll(this.checked);" /></td>
-                    <th>Tiêu đề</th>
-                    <th>Tác giả</th>
-                    <th>Chuyên mục</th>
-                    <th>Trạng thái</th>
-                    <th>Lượt xem</th>
-                    <th>Thời gian</th>
-                    <th title="Nổi bật">★</th>
-                    <th title="Tiêu điểm">📌</th>
-                    <th title="Sự kiện & Bình luận">📅</th>
-                </tr>
-            </tfoot>
-        </table>
-
-        <div class="wp-tablenav bottom">
-            <div class="wp-bulk">
-                <select name="action2" class="wp-select" onchange="this.form.querySelector('select[name=action]').value=this.value">
-                    <option value="">Tác vụ</option>
-                    @if (status == "trash")
-                    {
-                        <option value="restore">Phục hồi</option>
-                        <option value="permdelete">Xóa vĩnh viễn</option>
-                    }
-                    else
-                    {
-                        <option value="trash">Bỏ vào thùng rác</option>
-                    }
-                </select>
-                <button type="submit" class="wp-btn">Áp dụng</button>
-            </div>
-
-            @if (totalPages > 1)
-            {
-                <nav class="wp-pager">
-                    @for (int p = 1; p <= totalPages; p++)
-                    {
-                        <a href="?status=@status&q=@query&page=@p" class="@(p == page ? "current" : "")">@p</a>
-                    }
-                </nav>
+                    <a href="?status=@status&q=@query&page=@(page+1)" class="sm-pager-btn @(page >= totalPages ? "disabled" : "")">&gt;</a>
+                </div>
             }
-            <div class="wp-pagecount">@total mục</div>
         </div>
-    </form>
-
-    <!-- Filter form (separate so it does GET ngược về Manage) -->
-    <form method="get" action="/Article/Manage" id="filterForm" style="display:none;">
-        <input type="hidden" name="status" value="@status" />
-        @if (!string.IsNullOrEmpty(query)) { <input type="hidden" name="q" value="@query" /> }
-    </form>
-
-    <!-- Single-row action forms -->
-    <form method="post" action="/Article/Duplicate" id="dupForm" style="display:none;">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="id" id="dupId" />
-        <input type="hidden" name="returnStatus" value="@status" />
-    </form>
-    <form method="post" action="/Article/BulkAction" id="singleActionForm" style="display:none;">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="ids" id="singleId" />
-        <input type="hidden" name="action" id="singleAction" />
-        <input type="hidden" name="returnStatus" value="@status" />
-    </form>
-    <form method="post" action="/Article/ToggleFeatured" id="featForm" style="display:none;">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="id" id="featId" />
-        <input type="hidden" name="returnStatus" value="@status" />
-    </form>
-    <form method="post" action="/Article/ToggleFocus" id="focusForm" style="display:none;">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="id" id="focusId" />
-        <input type="hidden" name="returnStatus" value="@status" />
-    </form>
-    <form method="post" action="/Article/ToggleEvent" id="eventForm" style="display:none;">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="id" id="eventId" />
-        <input type="hidden" name="returnStatus" value="@status" />
-    </form>
+    </div>
 </div>
 
+@* ── FLASH MESSAGE (Bottom Left) ── *@
+@if (!string.IsNullOrEmpty(msg))
+{
+    <div class="sm-toast" id="smToast">
+        <div class="sm-toast__icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
+        <div class="sm-toast__content">@msg</div>
+        <button class="sm-toast__close" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+}
+
+@* ── HIDDEN FORMS ── *@
+<form method="post" action="/Article/ToggleFeatured" id="featForm" style="display:none;">@Html.AntiForgeryToken()<input type="hidden" name="id" id="featId" /><input type="hidden" name="returnStatus" value="@status" /></form>
+<form method="post" action="/Article/ToggleFocus" id="focusForm" style="display:none;">@Html.AntiForgeryToken()<input type="hidden" name="id" id="focusId" /><input type="hidden" name="returnStatus" value="@status" /></form>
+<form method="post" action="/Article/ToggleEvent" id="eventForm" style="display:none;">@Html.AntiForgeryToken()<input type="hidden" name="id" id="eventId" /><input type="hidden" name="returnStatus" value="@status" /></form>
+<form method="post" action="/Article/BulkAction" id="singleActionForm" style="display:none;">@Html.AntiForgeryToken()<input type="hidden" name="ids" id="singleId" /><input type="hidden" name="action" id="singleAction" /><input type="hidden" name="returnStatus" value="@status" /></form>
+
+<style>
+:root {
+    --sm-primary: #064E3B;
+    --sm-text: #1F2937;
+    --sm-text-muted: #6B7280;
+    --sm-border: #E5E7EB;
+    --sm-bg: #F9FAFB;
+}
+
+/* Base Wrapper */
+.main-content:has(.sm-manage-wrapper) { padding: 0 !important; background: #fff; }
+.sm-manage-wrapper { font-family: 'Be Vietnam Pro', sans-serif; background: #fff; height: calc(100vh - 70px); overflow-y: auto; display: flex; flex-direction: column; }
+
+/* Sticky Nav Block */
+.sm-sticky-nav {
+    position: sticky; top: 0; z-index: 1000;
+    background: #fff;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.sm-toolbar { height: 64px; padding: 0 24px; display: flex; align-items: center; border-bottom: 1px solid var(--sm-border); }
+.sm-toolbar__default, .sm-toolbar__selection { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+
+/* Tabs */
+.sm-tabs { display: flex; gap: 32px; height: 100%; }
+.sm-tab { font-weight: 600; font-size: 14px; color: var(--sm-text-muted); text-decoration: none; display: flex; align-items: center; border-bottom: 3px solid transparent; transition: 0.2s; }
+.sm-tab:hover { color: var(--sm-primary); }
+.sm-tab.active { color: var(--sm-primary); border-bottom-color: var(--sm-primary); }
+
+.sm-toolbar__right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.sm-select { height: 38px; padding: 0 12px; border: 1px solid var(--sm-border); border-radius: 8px; font-size: 13px; outline: none; background: var(--sm-bg); }
+.sm-search-wrap { position: relative; width: 280px; }
+.sm-search-wrap input { width: 100%; height: 38px; padding: 0 40px 0 16px; border: 1px solid var(--sm-border); border-radius: 8px; font-size: 13px; outline: none; background: var(--sm-bg); }
+.sm-search-wrap svg { position: absolute; right: 12px; top: 11px; color: var(--sm-text-muted); }
+
+/* Selection Mode */
+.sm-selection-left { display: flex; align-items: center; gap: 12px; }
+.sm-selection-count { font-weight: 700; color: var(--sm-primary); font-size: 15px; }
+.sm-btn-clear { background: none; border: none; padding: 8px; border-radius: 50%; cursor: pointer; color: var(--sm-text-muted); display: flex; }
+.sm-btn-clear:hover { background: #F3F4F6; color: #EF4444; }
+
+/* Table Header Joined */
+.sm-table-header-wrap { background: var(--sm-bg); border-bottom: 1px solid var(--sm-border); }
+.sm-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.sm-table thead th { padding: 14px 0; text-align: left; font-size: 12px; font-weight: 700; color: var(--sm-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Table Content */
+.sm-content-scroll { flex: 1; padding-bottom: 40px; }
+.sm-table tbody td { padding: 16px 0; border-bottom: 1px solid var(--sm-border); vertical-align: middle; }
+.sm-row-hoverable:hover { background: #F8FAFC; }
+.sm-row-hoverable.selected { background: #F0FDF4; }
+
+/* Title Colors Fix (No Blue) */
+.sm-title-cell { display: flex; flex-direction: column; gap: 4px; padding-right: 15px; }
+.sm-article-link { font-weight: 700; font-size: 14px; color: #111827; text-decoration: none; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sm-article-link:hover { color: var(--sm-primary); text-decoration: underline; }
+.sm-id { font-size: 11px; color: var(--sm-text-muted); }
+
+.sm-author { font-size: 13px; font-weight: 500; color: var(--sm-text); }
+.sm-cat { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+.sm-cat--security { background: #ECFDF5; color: #059669; }
+.sm-cat--life { background: #EFF6FF; color: #2563EB; }
+.sm-cat--default { background: #F3F4F6; color: #4B5563; }
+
+.sm-status { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.sm-dot { width: 8px; height: 8px; border-radius: 50%; }
+.sm-status--pub { color: #059669; } .sm-status--pub .sm-dot { background: #10B981; }
+.sm-status--draft { color: #D97706; } .sm-status--draft .sm-dot { background: #F59E0B; }
+.sm-status--rej { color: #DC2626; } .sm-status--rej .sm-dot { background: #EF4444; }
+
+.sm-views { font-weight: 600; font-size: 13px; color: var(--sm-text); }
+.sm-time-cell { display: flex; flex-direction: column; font-size: 12px; }
+.sm-time { font-weight: 700; color: var(--sm-text); }
+.sm-date { color: var(--sm-text-muted); }
+
+/* Horizontal Actions */
+.sm-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.sm-action-btn { width: 36px; height: 36px; border: 1px solid var(--sm-border); border-radius: 8px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: #9CA3AF; }
+.sm-action-btn svg { fill: none !important; }
+
+.sm-action-btn--star.active { color: #F59E0B; border-color: #FDE68A; background: #FFFBEB; }
+.sm-action-btn--star.active svg { fill: #F59E0B !important; }
+.sm-action-btn--focus { color: #60A5FA; }
+.sm-action-btn--focus.active { color: #2563EB; border-color: #BFDBFE; background: #EFF6FF; }
+.sm-action-btn--event { color: #A78BFA; }
+.sm-action-btn--event.active { color: #7C3AED; border-color: #DDD6FE; background: #F5F3FF; }
+.sm-action-btn--edit:hover { color: #10B981; border-color: #6EE7B7; background: #ECFDF5; }
+.sm-action-btn--toolbar { border-radius: 50%; width: 40px; height: 40px; }
+.sm-text-success { color: #10B981 !important; }
+.sm-text-danger { color: #EF4444 !important; }
+
+/* Toast Notification (Bottom Left) */
+.sm-toast {
+    position: fixed; bottom: 30px; left: 30px;
+    background: #1F2937; color: #fff; padding: 14px 24px; border-radius: 12px;
+    display: flex; align-items: center; gap: 12px; z-index: 9999;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    animation: slideUp 0.3s ease;
+}
+@@keyframes slideUp { from { bottom: 10px; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+.sm-toast__icon { color: #10B981; display: flex; }
+.sm-toast__content { font-size: 14px; font-weight: 500; }
+.sm-toast__close { background: none; border: none; color: #9CA3AF; font-size: 20px; cursor: pointer; margin-left: auto; padding-left: 10px; }
+
+/* Footer */
+.sm-footer { padding: 24px 30px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--sm-border); margin-top: auto; }
+.sm-info { font-size: 13px; color: var(--sm-text-muted); font-weight: 500; }
+.sm-pager { display: flex; gap: 6px; }
+.sm-pager-btn { min-width: 36px; height: 36px; border: 1px solid var(--sm-border); border-radius: 8px; display: flex; align-items: center; justify-content: center; text-decoration: none; color: var(--sm-text); font-size: 14px; font-weight: 600; transition: 0.2s; }
+.sm-pager-btn:hover:not(.disabled) { border-color: var(--sm-primary); color: var(--sm-primary); }
+.sm-pager-btn.active { background: var(--sm-primary); color: #fff; border-color: var(--sm-primary); }
+.sm-pager-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+.sm-pager-dots { display: flex; align-items: center; padding: 0 4px; color: var(--sm-text-muted); }
+.sm-empty { padding: 40px; text-align: center; color: var(--sm-text-muted); font-size: 14px; }
+</style>
+
 <script>
-    // Select-all
-    (function () {
-        var sel = document.getElementById('selAll');
-        if (sel) sel.addEventListener('change', function () { toggleAll(this.checked); });
-    })();
-    function toggleAll(v) {
-        document.querySelectorAll('.wp-rowcb').forEach(function (c) { c.checked = v; });
+function updateSelectionUI() {
+    const cbs = document.querySelectorAll('.row-cb:checked');
+    const toolbar = document.getElementById('smToolbar');
+    const def = document.getElementById('toolbarDefault');
+    const sel = document.getElementById('toolbarSelection');
+    const count = document.getElementById('selectionCount');
+    if (cbs.length > 0) {
+        def.style.display = 'none'; sel.style.display = 'flex';
+        count.textContent = cbs.length;
+        toolbar.style.background = '#F0FDF4';
+    } else {
+        def.style.display = 'flex'; sel.style.display = 'none';
+        toolbar.style.background = '#fff';
     }
+    document.querySelectorAll('.row-cb').forEach(cb => { cb.closest('tr').classList.toggle('selected', cb.checked); });
+}
+function clearSelection() {
+    document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
+    document.getElementById('selAll').checked = false; updateSelectionUI();
+}
+function submitBulk(action) {
+    if (action === 'permdelete' && !confirm('Xóa vĩnh viễn?')) return;
+    document.getElementById('bulkActionInput').value = action; document.getElementById('bulkForm').submit();
+}
+function wpToggleFeatured(id) { document.getElementById('featId').value = id; document.getElementById('featForm').submit(); }
+function wpToggleFocus(id) { document.getElementById('focusId').value = id; document.getElementById('focusForm').submit(); }
+function wpToggleEvent(id) { document.getElementById('eventId').value = id; document.getElementById('eventForm').submit(); }
+function wpRestore(id) { _singleAction(id, 'restore'); }
+function wpPermDelete(id) { _singleAction(id, 'permdelete', 'Xóa vĩnh viễn?'); }
+function _singleAction(id, action, msg) {
+    if (msg && !confirm(msg)) return;
+    document.getElementById('singleId').value = id; document.getElementById('singleAction').value = action;
+    document.getElementById('singleActionForm').submit();
+}
 
-    // Quick edit toggle
-    function wpQuickEdit(id) {
-        var n = document.getElementById('qe-' + id);
-        if (!n) return;
-        document.querySelectorAll('.wp-quickedit').forEach(function (x) { if (x.id !== ('qe-' + id)) x.style.display = 'none'; });
-        n.style.display = (n.style.display === 'none' || !n.style.display) ? 'block' : 'none';
-    }
+function wpApprove(id) {
+    if (!confirm('Bạn có chắc chắn muốn duyệt bài viết này?')) return;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+    const fd = new FormData();
+    fd.append('__RequestVerificationToken', token);
+    fetch('/Article/Approve/' + id, {
+        method: 'POST',
+        body: fd
+    }).then(res => {
+        if(res.ok) location.reload();
+        else alert('Có lỗi xảy ra khi duyệt bài');
+    });
+}
 
-    function wpDuplicate(id) {
-        if (!confirm('Tạo một bản sao bài viết này?')) return;
-        document.getElementById('dupId').value = id;
-        document.getElementById('dupForm').submit();
-    }
+function wpReject(id) {
+    const reason = prompt('Nhập lý do từ chối:');
+    if (!reason) return;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+    // We send reason via query string / form data instead of JSON to bypass header antiforgery configuration issues.
+    // Wait, the backend requires [FromBody] RejectRequest req. So we MUST send JSON.
+    fetch('/Article/Reject/' + id, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': token 
+        },
+        body: JSON.stringify({ reason: reason })
+    }).then(res => {
+        if(res.ok) location.reload();
+        else alert('Có lỗi xảy ra khi từ chối bài (Kiểm tra AntiForgeryToken)');
+    });
+}
 
-    function _singleAction(id, action, confirmMsg) {
-        if (confirmMsg && !confirm(confirmMsg)) return;
-        document.getElementById('singleId').value = id;
-        document.getElementById('singleAction').value = action;
-        document.getElementById('singleActionForm').submit();
-    }
-    function wpTrash(id) { _singleAction(id, 'trash', 'Bỏ bài viết này vào thùng rác?'); }
-
-    function wpApprove(id) {
-        if (!confirm('Duyệt và xuất bản bài viết này?')) return;
-        fetch('/Article/Approve/' + id, { method: 'POST' })
-            .then(res => {
-                if (res.ok) window.location.reload();
-                else alert('Lỗi khi duyệt bài!');
-            });
-    }
-    function wpRestore(id) { _singleAction(id, 'restore', null); }
-    function wpPermDelete(id) { _singleAction(id, 'permdelete', 'Xóa VĨNH VIỄN bài viết này? Hành động không thể hoàn tác.'); }
-
-    function wpToggleFeatured(id) {
-        document.getElementById('featId').value = id;
-        document.getElementById('featForm').submit();
-    }
-    function wpToggleFocus(id) {
-        document.getElementById('focusId').value = id;
-        document.getElementById('focusForm').submit();
-    }
-    function wpToggleEvent(id) {
-        document.getElementById('eventId').value = id;
-        document.getElementById('eventForm').submit();
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    const selAll = document.getElementById('selAll');
+    if (selAll) selAll.addEventListener('change', function() {
+        document.querySelectorAll('.row-cb').forEach(cb => cb.checked = this.checked); updateSelectionUI();
+    });
+    const toast = document.getElementById('smToast');
+    if (toast) setTimeout(() => toast.style.display = 'none', 5000);
+});
 </script>

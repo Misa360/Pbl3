@@ -95,13 +95,12 @@ namespace DaNangSafeMap.Controllers
             // expires or a moderator action invalidates the cache.
             ViewBag.Categories = await _articleService.GetCategoriesAsync();
             ViewBag.Featured = await _articleService.GetFeaturedArticlesAsync(4, categorySlug);
-            ViewBag.Latest = await _articleService.GetLatestArticlesAsync(
-                string.IsNullOrEmpty(categorySlug) ? 12 : 24, categorySlug);
             ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(10);
 
             if (string.IsNullOrEmpty(categorySlug))
             {
                 ViewBag.Mode = "home";
+                ViewBag.Latest = await _articleService.GetLatestArticlesAsync(12, null);
 
                 // Build per-category latest lists for the home page's section blocks
                 // (kiểu báo Đà Nẵng: mỗi chuyên mục một block "header đỏ + 1 bài lớn + 6 bài nhỏ").
@@ -114,6 +113,16 @@ namespace DaNangSafeMap.Controllers
                 }
                 ViewBag.LatestByCat = byCat;
             }
+            else
+            {
+                int pageSize = 24;
+                var total = await _articleService.GetArticleCountByCategoryAsync(categorySlug);
+                var items = await _articleService.GetArticlesByCategoryAsync(categorySlug, page, pageSize);
+                ViewBag.Total = total;
+                ViewBag.PageSize = pageSize;
+                ViewBag.CurrentPage = page;
+                ViewBag.Latest = items;
+            }
 
             return View("Index", new List<Article>());
         }
@@ -124,8 +133,16 @@ namespace DaNangSafeMap.Controllers
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            var article = await _articleService.GetArticleByIdAsync(id);
-            if (article == null || article.Status != 2)
+            var role = GetCurrentUserRole();
+            var article = role == "Admin" 
+                ? await _articleService.GetArticleByIdUnfilteredAsync(id)
+                : await _articleService.GetArticleByIdAsync(id);
+
+            if (article == null)
+                return NotFound();
+
+            // Nếu không phải Admin thì bắt buộc bài phải ở trạng thái APPROVED (2)
+            if (role != "Admin" && article.Status != 2)
                 return NotFound();
 
             // Tăng lượt xem
@@ -147,6 +164,21 @@ namespace DaNangSafeMap.Controllers
         }
 
         // ══════════════════════════════════════════════
+        // XEM TRƯỚC BÀI VIẾT DÀNH CHO ADMIN
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Preview(int id)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            var article = await _articleService.GetArticleByIdUnfilteredAsync(id);
+            if (article == null) return NotFound();
+
+            return View("Preview", article);
+        }
+
+        // ══════════════════════════════════════════════
         // ĐĂNG BÀI
         // ══════════════════════════════════════════════
         [HttpGet]
@@ -161,7 +193,8 @@ namespace DaNangSafeMap.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string title, string summary, string content,
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(string title, string? summary, string content,
             int categoryId, IFormFile? image, bool isFeatured = false)
         {
             var userId = GetCurrentUserId();
@@ -171,6 +204,15 @@ namespace DaNangSafeMap.Controllers
             string? imageUrl = null;
             if (image != null && image.Length > 0)
             {
+                var (isValid, error) = ValidateImage(image);
+                if (!isValid)
+                {
+                    ModelState.AddModelError("image", error ?? "Ảnh không hợp lệ");
+                    ViewBag.Categories = await _articleService.GetCategoriesAsync();
+                    ViewBag.Role = role;
+                    return View("Create");
+                }
+
                 var uploadsDir = Path.Combine(_env.WebRootPath, "uploads", "articles");
                 Directory.CreateDirectory(uploadsDir);
                 var fileName = $"{Guid.NewGuid()}{Path.GetExtension(image.FileName)}";
@@ -196,6 +238,87 @@ namespace DaNangSafeMap.Controllers
 
             if (role == "Admin") return RedirectToAction("Manage", "Article");
             return RedirectToAction("Index", new { mode = "my" });
+        }
+
+        // ══════════════════════════════════════════════
+        // CHỈNH SỬA BÀI VIẾT
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+            if (userId == null) return Redirect("/Auth/Login");
+
+            var article = await _articleService.GetArticleByIdAsync(id);
+            if (article == null) return NotFound();
+
+            // Chỉ Admin hoặc tác giả mới được sửa
+            if (role != "Admin" && article.AuthorId != userId.Value) return Forbid();
+
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.Role = role;
+            return View("Edit", article);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, string title, string? summary, string content,
+            int categoryId, IFormFile? image, bool isFeatured = false)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+            if (userId == null) return Unauthorized();
+
+            var existing = await _articleService.GetArticleByIdAsync(id);
+            if (existing == null) return NotFound();
+            if (role != "Admin" && existing.AuthorId != userId.Value) return Forbid();
+
+            string? imageUrl = existing.ImageUrl;
+            if (image != null && image.Length > 0)
+            {
+                var (isValid, error) = ValidateImage(image);
+                if (!isValid)
+                {
+                    ModelState.AddModelError("image", error ?? "Ảnh không hợp lệ");
+                    ViewBag.Categories = await _articleService.GetCategoriesAsync();
+                    ViewBag.Role = role;
+                    return View("Edit", existing);
+                }
+
+                var uploadsDir = Path.Combine(_env.WebRootPath, "uploads", "articles");
+                Directory.CreateDirectory(uploadsDir);
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(image.FileName)}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await image.CopyToAsync(stream);
+                imageUrl = $"/uploads/articles/{fileName}";
+            }
+
+            var updated = new Article
+            {
+                Title = title,
+                Summary = summary,
+                Content = content,
+                CategoryId = categoryId,
+                ImageUrl = imageUrl,
+            };
+
+            // Admin có quyền cập nhật bất kỳ bài nào (kể cả của user khác).
+            // Service hiện tại chỉ cho author tự sửa, nên với Admin ta đi đường QuickUpdate
+            // để bypass author-check, và cập nhật riêng nội dung qua context.
+            if (role == "Admin")
+            {
+                await _articleService.AdminUpdateArticleAsync(id, title, summary, content, categoryId, imageUrl, isFeatured);
+                TempData["AdminMsg"] = "Đã cập nhật bài viết.";
+                return RedirectToAction("Manage", "Article");
+            }
+            else
+            {
+                var ok = await _articleService.UpdateArticleAsync(id, userId.Value, updated);
+                if (ok == null) return Forbid();
+                return RedirectToAction("Index", new { mode = "my" });
+            }
         }
 
         // ══════════════════════════════════════════════
@@ -353,6 +476,7 @@ namespace DaNangSafeMap.Controllers
 
         // POST /Article/AddComment
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddComment([FromBody] CommentRequest req)
         {
             var userId = GetCurrentUserId();
@@ -397,6 +521,7 @@ namespace DaNangSafeMap.Controllers
 
         // POST /Article/MarkNotificationRead/{id}
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkNotificationRead(int id)
         {
             var userId = GetCurrentUserId();
@@ -407,6 +532,7 @@ namespace DaNangSafeMap.Controllers
 
         // POST /Article/MarkAllRead
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkAllRead()
         {
             var userId = GetCurrentUserId();
@@ -417,6 +543,7 @@ namespace DaNangSafeMap.Controllers
 
         // POST /Article/Delete/{id}
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteArticle(int id)
         {
             var userId = GetCurrentUserId();
@@ -427,10 +554,10 @@ namespace DaNangSafeMap.Controllers
         }
 
         // ══════════════════════════════════════════════
-        // TINYMCE UPLOAD IMAGE
+        // TINYMCE UPLOAD MEDIA
         // ══════════════════════════════════════════════
         [HttpPost]
-        public async Task<IActionResult> UploadImage(IFormFile file)
+        public async Task<IActionResult> UploadMedia(IFormFile file)
         {
             var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
@@ -466,6 +593,7 @@ namespace DaNangSafeMap.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(int id)
         {
             var userId = GetCurrentUserId();
@@ -477,17 +605,7 @@ namespace DaNangSafeMap.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ToggleFeatured(int id)
-        {
-            var userId = GetCurrentUserId();
-            var role = GetCurrentUserRole();
-            if (role != "Admin" || userId == null) return Forbid();
-
-            var success = await _articleService.ToggleFeaturedArticleAsync(id, userId.Value);
-            return success ? Ok() : NotFound();
-        }
-
-        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reject(int id, [FromBody] RejectRequest req)
         {
             var userId = GetCurrentUserId();
@@ -496,6 +614,20 @@ namespace DaNangSafeMap.Controllers
 
             await _articleService.RejectArticleAsync(id, userId.Value, req.Reason);
             return Ok(new { message = "Đã từ chối bài viết" });
+        }
+
+        private (bool isValid, string? error) ValidateImage(IFormFile image)
+        {
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(image.FileName).ToLower();
+
+            if (!allowedExtensions.Contains(extension))
+                return (false, "Chỉ chấp nhận định dạng .jpg, .jpeg, .png, .webp");
+
+            if (image.Length > 5 * 1024 * 1024) // 5MB
+                return (false, "Dung lượng ảnh không được vượt quá 5MB");
+
+            return (true, null);
         }
     }
 

@@ -2,7 +2,7 @@
    ARTICLE.CSS — Phong cách Báo Đà Nẵng
    ══════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
 
 :root {
     --art-bg: #f5f5f0;
@@ -11,16 +11,16 @@
     --art-text-secondary: #555;
     --art-text-muted: #888;
     --art-border: #e0e0e0;
-    --art-accent: #2D6A4F;
-    --art-accent-dark: #1B4332;
-    --art-accent-light: #40916C;
-    --art-blue: #2c3e50;
-    --art-blue-light: #34495e;
-    --art-green: #27ae60;
-    --art-orange: #e67e22;
+    --art-accent: #00897B;
+    --art-accent-dark: #00695C;
+    --art-accent-light: #26A69A;
+    --art-blue: #00897B;
+    --art-blue-light: #00695C;
+    --art-green: #00897B;
+    --art-orange: #00897B;
     --art-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     --art-max-w: 1200px;
-    --art-serif: 'Noto Serif', 'Georgia', serif;
+    --art-serif: 'Be Vietnam Pro', sans-serif;
     --art-sans: 'Be Vietnam Pro', sans-serif;
     --art-radius: 6px;
 }
@@ -3454,10 +3454,10 @@
     --bdn-line: #d8d8d8;
     --bdn-bg: #ffffff;
     --bdn-lead: #444444;
-    --bdn-serif: 'Noto Serif', 'Be Vietnam Pro', Georgia, 'Times New Roman', serif;
-    --bdn-sans: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --bdn-green: #00695C;
-    --bdn-green-dark: #004d40;
+    --bdn-serif: 'Be Vietnam Pro', sans-serif;
+    --bdn-sans: 'Be Vietnam Pro', sans-serif;
+    --bdn-green: #00897B;
+    --bdn-green-dark: #00695C;
     --bdn-green-soft: #e6f4f1;
     --bdn-container-w: 1280px;
 }
@@ -3478,8 +3478,8 @@
 
 /* ── Category nav bar (đỏ, pinned dưới sub-nav) ────────────────── */
 .bdn-catnav {
-    background: var(--bdn-red);
-    border-bottom: 3px solid var(--bdn-red-dark);
+    background: var(--bdn-green);
+    border-bottom: 3px solid var(--bdn-green-dark);
 }
 
 .bdn-catnav__inner {
@@ -3521,12 +3521,12 @@
 
 .bdn-catnav__item:hover,
 .bdn-catnav__home:hover {
-    background: var(--bdn-red-dark);
+    background: var(--bdn-green-dark);
 }
 
 .bdn-catnav__item.is-active,
 .bdn-catnav__home.is-active {
-    background: var(--bdn-red-dark);
+    background: var(--bdn-green-dark);
     box-shadow: inset 0 -3px 0 #ffcf3a;
 }
 
@@ -3701,7 +3701,7 @@
 
 .bdn-lead-dno {
     font-weight: 700;
-    color: var(--bdn-red);
+    color: var(--bdn-green);
     letter-spacing: 0.5px;
 }
 
@@ -3804,7 +3804,7 @@
     gap: 18px;
     font-family: var(--bdn-serif);
     font-size: 22px;
-    color: var(--bdn-red);
+    color: var(--bdn-green);
     font-weight: 900;
     letter-spacing: 1.5px;
     margin: 0 0 10px;
@@ -4090,7 +4090,7 @@
     right: 0;
     bottom: -11px;
     height: 2px;
-    background: var(--bdn-red);
+    background: var(--bdn-green);
 }
 
 .bdn-cat__crumb {
@@ -4274,7 +4274,7 @@
 }
 
 .bdn-cat__row-cat {
-    color: var(--bdn-red);
+    color: var(--bdn-green);
     font-weight: 600;
 }
 
@@ -4322,8 +4322,8 @@
 
 .bdn-cat__tab.is-active {
     background: #fff;
-    color: var(--bdn-red);
-    border-bottom-color: var(--bdn-red);
+    color: var(--bdn-green);
+    border-bottom-color: var(--bdn-green);
 }
 
 .bdn-cat__rank {
